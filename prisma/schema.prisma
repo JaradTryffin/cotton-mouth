@@ -1,0 +1,136 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Define your models based on the Doob System
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("staff") // staff, admin, etc.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  members Member[] @relation("CreatedBy")
+}
+
+model Member {
+  id             String   @id @default(uuid())
+  firstName      String
+  lastName       String
+  email          String?  @unique
+  phoneNumber    String?
+  membershipType String
+  balance        Float    @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Identification details
+  idFront String? // File path or reference
+  idBack  String? // File path or reference
+
+  // App integration
+  appLinked Boolean @default(false)
+  username  String? @unique
+
+  // Relationships
+  createdBy       User       @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById     String
+  orders          Order[]
+  donations       Donation[]
+  referredMembers Member[]   @relation("Referrals")
+  referredBy      Member?    @relation("Referrals", fields: [referredById], references: [id])
+  referredById    String?
+}
+
+model Product {
+  id              String   @id @default(uuid())
+  name            String
+  category        String // flower, edible, etc.
+  description     String?
+  price           Float
+  unit            String // gram, unit, etc.
+  stock           Float    @default(0)
+  jarWeight       Float? // For weigh-up
+  displayOnApp    Boolean  @default(true)
+  allowGifting    Boolean  @default(false)
+  ignoreDiscounts Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  orderItems OrderItem[]
+}
+
+model Order {
+  id        String   @id @default(uuid())
+  total     Float
+  status    String   @default("completed") // completed, refunded, etc.
+  createdAt DateTime @default(now())
+
+  // Relationships
+  member   Member      @relation(fields: [memberId], references: [id])
+  memberId String
+  items    OrderItem[]
+}
+
+model OrderItem {
+  id       String @id @default(uuid())
+  quantity Float
+  price    Float
+
+  // Relationships
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+}
+
+model Donation {
+  id        String   @id @default(uuid())
+  amount    Float
+  method    String // cash, card, club
+  createdAt DateTime @default(now())
+
+  // Relationships
+  member   Member? @relation(fields: [memberId], references: [id])
+  memberId String?
+}
+
+model Workstation {
+  id            String  @id @default(uuid())
+  name          String  @unique
+  hasTerminal   Boolean @default(false)
+  isTillEnabled Boolean @default(false)
+}
+
+model BusinessDay {
+  id           String    @id @default(uuid())
+  openedAt     DateTime  @default(now())
+  closedAt     DateTime?
+  initialFloat Float
+  isOpen       Boolean   @default(true)
+  shifts       Shift[]
+}
+
+model Shift {
+  id        String    @id @default(uuid())
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  cashOut   Float?
+
+  // Relationships
+  businessDay   BusinessDay @relation(fields: [businessDayId], references: [id])
+  businessDayId String
+}
