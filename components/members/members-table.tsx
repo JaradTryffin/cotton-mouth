@@ -14,6 +14,7 @@ import {
   UserX,
   Download,
   X,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -53,154 +54,36 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
-// Mock data for demonstration
-const MOCK_MEMBERS = [
-  {
-    id: "1",
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    phoneNumber: "(555) 123-4567",
-    membershipType: "standard",
-    isActive: true,
-    balance: 0,
-    createdAt: new Date("2023-01-15"),
-    appLinked: true,
-  },
-  {
-    id: "2",
-    firstName: "Jane",
-    lastName: "Smith",
-    email: "jane.smith@example.com",
-    phoneNumber: "(555) 987-6543",
-    membershipType: "premium",
-    isActive: true,
-    balance: 25.5,
-    createdAt: new Date("2023-02-20"),
-    appLinked: false,
-  },
-  {
-    id: "3",
-    firstName: "Robert",
-    lastName: "Johnson",
-    email: "robert.j@example.com",
-    phoneNumber: "(555) 456-7890",
-    membershipType: "vip",
-    isActive: true,
-    balance: 150.75,
-    createdAt: new Date("2023-03-10"),
-    appLinked: true,
-  },
-  {
-    id: "4",
-    firstName: "Emily",
-    lastName: "Williams",
-    email: "emily.w@example.com",
-    phoneNumber: "(555) 234-5678",
-    membershipType: "standard",
-    isActive: false,
-    balance: 0,
-    createdAt: new Date("2023-01-05"),
-    appLinked: false,
-  },
-  {
-    id: "5",
-    firstName: "Michael",
-    lastName: "Brown",
-    email: "michael.b@example.com",
-    phoneNumber: "(555) 876-5432",
-    membershipType: "premium",
-    isActive: true,
-    balance: 75.25,
-    createdAt: new Date("2023-04-15"),
-    appLinked: true,
-  },
-  {
-    id: "6",
-    firstName: "Sarah",
-    lastName: "Davis",
-    email: "sarah.d@example.com",
-    phoneNumber: "(555) 345-6789",
-    membershipType: "standard",
-    isActive: true,
-    balance: 10.0,
-    createdAt: new Date("2023-05-20"),
-    appLinked: false,
-  },
-  {
-    id: "7",
-    firstName: "David",
-    lastName: "Miller",
-    email: "david.m@example.com",
-    phoneNumber: "(555) 654-3210",
-    membershipType: "vip",
-    isActive: true,
-    balance: 200.5,
-    createdAt: new Date("2023-06-10"),
-    appLinked: true,
-  },
-  {
-    id: "8",
-    firstName: "Jessica",
-    lastName: "Wilson",
-    email: "jessica.w@example.com",
-    phoneNumber: "(555) 432-1098",
-    membershipType: "premium",
-    isActive: false,
-    balance: 0,
-    createdAt: new Date("2023-02-05"),
-    appLinked: false,
-  },
-  {
-    id: "9",
-    firstName: "Thomas",
-    lastName: "Moore",
-    email: "thomas.m@example.com",
-    phoneNumber: "(555) 789-0123",
-    membershipType: "standard",
-    isActive: true,
-    balance: 5.75,
-    createdAt: new Date("2023-07-15"),
-    appLinked: true,
-  },
-  {
-    id: "10",
-    firstName: "Jennifer",
-    lastName: "Taylor",
-    email: "jennifer.t@example.com",
-    phoneNumber: "(555) 210-9876",
-    membershipType: "vip",
-    isActive: true,
-    balance: 300.0,
-    createdAt: new Date("2023-08-20"),
-    appLinked: false,
-  },
-  {
-    id: "11",
-    firstName: "Daniel",
-    lastName: "Anderson",
-    email: "daniel.a@example.com",
-    phoneNumber: "(555) 567-8901",
-    membershipType: "premium",
-    isActive: true,
-    balance: 50.25,
-    createdAt: new Date("2023-09-10"),
-    appLinked: true,
-  },
-  {
-    id: "12",
-    firstName: "Lisa",
-    lastName: "Thomas",
-    email: "lisa.t@example.com",
-    phoneNumber: "(555) 678-9012",
-    membershipType: "standard",
-    isActive: false,
-    balance: 0,
-    createdAt: new Date("2023-03-05"),
-    appLinked: false,
-  },
-];
+// Type definitions
+interface Member {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phoneNumber?: string;
+  membershipType: string;
+  isActive: boolean;
+  balance: number;
+  createdAt: string;
+  appLinked: boolean;
+  referredBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+interface MembersResponse {
+  members: Member[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
 
 type SortDirection = "asc" | "desc" | null;
 type SortField =
@@ -213,8 +96,9 @@ type SortField =
   | null;
 
 export function MembersTable() {
-  const [members, setMembers] = useState(MOCK_MEMBERS);
-  const [filteredMembers, setFilteredMembers] = useState(MOCK_MEMBERS);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [membershipFilter, setMembershipFilter] = useState<string | null>(null);
@@ -224,112 +108,60 @@ export function MembersTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [isAllSelected, setIsAllSelected] = useState(false);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+  });
 
   const itemsPerPage = 10;
-  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedMembers = filteredMembers.slice(
-    startIndex,
-    startIndex + itemsPerPage,
-  );
 
-  // Filter and sort members when any filter or sort state changes
-  useEffect(() => {
-    let result = [...members];
+  // Fetch members from API
+  const fetchMembers = async () => {
+    setIsLoading(true);
+    setError(null);
 
-    // Apply search
-    if (searchTerm) {
-      const lowerSearchTerm = searchTerm.toLowerCase();
-      result = result.filter(
-        (member) =>
-          `${member.firstName} ${member.lastName}`
-            .toLowerCase()
-            .includes(lowerSearchTerm) ||
-          member.email?.toLowerCase().includes(lowerSearchTerm) ||
-          member.phoneNumber?.toLowerCase().includes(lowerSearchTerm),
-      );
-    }
-
-    // Apply status filter
-    if (statusFilter && statusFilter !== "all") {
-      if (statusFilter === "active") {
-        result = result.filter((member) => member.isActive);
-      } else if (statusFilter === "inactive") {
-        result = result.filter((member) => !member.isActive);
-      }
-    }
-
-    // Apply membership filter
-    if (membershipFilter) {
-      result = result.filter(
-        (member) => member.membershipType === membershipFilter,
-      );
-    }
-
-    // Apply app linked filter
-    if (appLinkedFilter) {
-      if (appLinkedFilter === "linked") {
-        result = result.filter((member) => member.appLinked);
-      } else if (appLinkedFilter === "not-linked") {
-        result = result.filter((member) => !member.appLinked);
-      }
-    }
-
-    // Apply sorting
-    if (sortField && sortDirection) {
-      result.sort((a, b) => {
-        let valueA, valueB;
-
-        switch (sortField) {
-          case "name":
-            valueA = `${a.firstName} ${a.lastName}`.toLowerCase();
-            valueB = `${b.firstName} ${b.lastName}`.toLowerCase();
-            break;
-          case "email":
-            valueA = a.email?.toLowerCase() || "";
-            valueB = b.email?.toLowerCase() || "";
-            break;
-          case "membershipType":
-            valueA = a.membershipType.toLowerCase();
-            valueB = b.membershipType.toLowerCase();
-            break;
-          case "status":
-            valueA = a.isActive;
-            valueB = b.isActive;
-            break;
-          case "createdAt":
-            valueA = a.createdAt.getTime();
-            valueB = b.createdAt.getTime();
-            break;
-          case "balance":
-            valueA = a.balance;
-            valueB = b.balance;
-            break;
-          default:
-            return 0;
-        }
-
-        if (sortDirection === "asc") {
-          return valueA > valueB ? 1 : -1;
-        } else {
-          return valueA < valueB ? 1 : -1;
-        }
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
       });
-    }
 
-    setFilteredMembers(result);
-    setCurrentPage(1); // Reset to first page when filters change
+      if (searchTerm) params.append("search", searchTerm);
+      if (statusFilter) params.append("status", statusFilter);
+      if (membershipFilter) params.append("membershipType", membershipFilter);
+      if (appLinkedFilter) params.append("appLinked", appLinkedFilter);
+
+      const response = await fetch(`/api/members?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch members");
+      }
+
+      const data: MembersResponse = await response.json();
+      setMembers(data.members);
+      setPagination(data.pagination);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      toast.error("Failed to load members");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch members when dependencies change
+  useEffect(() => {
+    fetchMembers();
   }, [
-    members,
+    currentPage,
     searchTerm,
     statusFilter,
     membershipFilter,
     appLinkedFilter,
-    sortField,
-    sortDirection,
   ]);
 
-  // Handle sort toggle
+  // Handle sort toggle (client-side sorting for simplicity)
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       if (sortDirection === "asc") {
@@ -343,6 +175,48 @@ export function MembersTable() {
       setSortDirection("asc");
     }
   };
+
+  // Apply client-side sorting
+  const sortedMembers = [...members].sort((a, b) => {
+    if (!sortField || !sortDirection) return 0;
+
+    let valueA: any, valueB: any;
+
+    switch (sortField) {
+      case "name":
+        valueA = `${a.firstName} ${a.lastName}`.toLowerCase();
+        valueB = `${b.firstName} ${b.lastName}`.toLowerCase();
+        break;
+      case "email":
+        valueA = a.email?.toLowerCase() || "";
+        valueB = b.email?.toLowerCase() || "";
+        break;
+      case "membershipType":
+        valueA = a.membershipType.toLowerCase();
+        valueB = b.membershipType.toLowerCase();
+        break;
+      case "status":
+        valueA = a.isActive;
+        valueB = b.isActive;
+        break;
+      case "createdAt":
+        valueA = new Date(a.createdAt).getTime();
+        valueB = new Date(b.createdAt).getTime();
+        break;
+      case "balance":
+        valueA = a.balance;
+        valueB = b.balance;
+        break;
+      default:
+        return 0;
+    }
+
+    if (sortDirection === "asc") {
+      return valueA > valueB ? 1 : -1;
+    } else {
+      return valueA < valueB ? 1 : -1;
+    }
+  });
 
   // Get sort icon based on current sort state
   const getSortIcon = (field: SortField) => {
@@ -361,7 +235,7 @@ export function MembersTable() {
     if (isAllSelected) {
       setSelectedMembers([]);
     } else {
-      setSelectedMembers(paginatedMembers.map((member) => member.id));
+      setSelectedMembers(sortedMembers.map((member) => member.id));
     }
     setIsAllSelected(!isAllSelected);
   };
@@ -372,7 +246,7 @@ export function MembersTable() {
       setIsAllSelected(false);
     } else {
       setSelectedMembers([...selectedMembers, id]);
-      if (selectedMembers.length + 1 === paginatedMembers.length) {
+      if (selectedMembers.length + 1 === sortedMembers.length) {
         setIsAllSelected(true);
       }
     }
@@ -386,6 +260,7 @@ export function MembersTable() {
     setAppLinkedFilter(null);
     setSortField(null);
     setSortDirection(null);
+    setCurrentPage(1);
   };
 
   // Check if any filters are active
@@ -396,6 +271,28 @@ export function MembersTable() {
     appLinkedFilter ||
     sortField;
 
+  // Handle pagination
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSelectedMembers([]);
+    setIsAllSelected(false);
+  };
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-10">
+          <div className="text-center">
+            <p className="text-destructive mb-4">{error}</p>
+            <Button onClick={fetchMembers} variant="outline">
+              Try Again
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -405,7 +302,10 @@ export function MembersTable() {
             placeholder="Search members..."
             className="pl-8"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // Reset to first page on search
+            }}
           />
           {searchTerm && (
             <Button
@@ -529,6 +429,7 @@ export function MembersTable() {
             variant="outline"
             size="sm"
             className="flex items-center gap-1"
+            onClick={() => toast.info("Export functionality coming soon")}
           >
             <Download className="h-4 w-4" />
             <span>Export</span>
@@ -680,8 +581,17 @@ export function MembersTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedMembers.length > 0 ? (
-                  paginatedMembers.map((member) => (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="h-24 text-center">
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                        Loading members...
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : sortedMembers.length > 0 ? (
+                  sortedMembers.map((member) => (
                     <TableRow key={member.id}>
                       <TableCell>
                         <Checkbox
@@ -695,13 +605,13 @@ export function MembersTable() {
                           {member.firstName} {member.lastName}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          ID: {member.id}
+                          ID: {member.id.slice(0, 8)}...
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div>{member.email}</div>
+                        <div>{member.email || "No email"}</div>
                         <div className="text-xs text-muted-foreground">
-                          {member.phoneNumber}
+                          {member.phoneNumber || "No phone"}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -730,9 +640,9 @@ export function MembersTable() {
                           {member.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
-                      <TableCell>${member.balance.toFixed(2)}</TableCell>
+                      <TableCell>R{member.balance.toFixed(2)}</TableCell>
                       <TableCell>
-                        {format(member.createdAt, "MMM d, yyyy")}
+                        {format(new Date(member.createdAt), "MMM d, yyyy")}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -745,7 +655,7 @@ export function MembersTable() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
                               <Link
-                                href={`/members/${member.id}`}
+                                href={`/dashboard/members/${member.id}`}
                                 className="flex items-center"
                               >
                                 <Eye className="mr-2 h-4 w-4" />
@@ -754,7 +664,7 @@ export function MembersTable() {
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                               <Link
-                                href={`/members/${member.id}/edit`}
+                                href={`/dashboard/members/${member.id}/edit`}
                                 className="flex items-center"
                               >
                                 <Edit className="mr-2 h-4 w-4" />
@@ -762,7 +672,12 @@ export function MembersTable() {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() =>
+                                toast.info("Member status toggle coming soon")
+                              }
+                            >
                               <UserX className="mr-2 h-4 w-4" />
                               <span>
                                 {member.isActive ? "Deactivate" : "Activate"}
@@ -789,64 +704,87 @@ export function MembersTable() {
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
           Showing{" "}
-          <strong>{Math.min(startIndex + 1, filteredMembers.length)}</strong> to{" "}
           <strong>
-            {Math.min(startIndex + itemsPerPage, filteredMembers.length)}
+            {pagination.total === 0
+              ? 0
+              : (pagination.page - 1) * pagination.limit + 1}
           </strong>{" "}
-          of <strong>{filteredMembers.length}</strong> members
+          to{" "}
+          <strong>
+            {Math.min(pagination.page * pagination.limit, pagination.total)}
+          </strong>{" "}
+          of <strong>{pagination.total}</strong> members
         </div>
 
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                isActive={currentPage > 1}
-              />
-            </PaginationItem>
-
-            {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
-              let pageNumber: number;
-
-              // Logic to show pages around current page
-              if (totalPages <= 5) {
-                pageNumber = i + 1;
-              } else if (currentPage <= 3) {
-                pageNumber = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNumber = totalPages - 4 + i;
-              } else {
-                pageNumber = currentPage - 2 + i;
-              }
-
-              return (
-                <PaginationItem key={pageNumber}>
-                  <PaginationLink
-                    isActive={currentPage === pageNumber}
-                    onClick={() => setCurrentPage(pageNumber)}
-                  >
-                    {pageNumber}
-                  </PaginationLink>
-                </PaginationItem>
-              );
-            })}
-
-            {totalPages > 5 && currentPage < totalPages - 2 && (
+        {pagination.totalPages > 1 && (
+          <Pagination>
+            <PaginationContent>
               <PaginationItem>
-                <PaginationEllipsis />
+                <PaginationPrevious
+                  onClick={() =>
+                    handlePageChange(Math.max(pagination.page - 1, 1))
+                  }
+                  className={
+                    pagination.page <= 1
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
               </PaginationItem>
-            )}
 
-            <PaginationItem>
-              <PaginationNext
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                }
-                isActive={currentPage < totalPages}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+              {Array.from({ length: Math.min(pagination.totalPages, 5) }).map(
+                (_, i) => {
+                  let pageNumber: number;
+
+                  // Logic to show pages around current page
+                  if (pagination.totalPages <= 5) {
+                    pageNumber = i + 1;
+                  } else if (pagination.page <= 3) {
+                    pageNumber = i + 1;
+                  } else if (pagination.page >= pagination.totalPages - 2) {
+                    pageNumber = pagination.totalPages - 4 + i;
+                  } else {
+                    pageNumber = pagination.page - 2 + i;
+                  }
+
+                  return (
+                    <PaginationItem key={pageNumber}>
+                      <PaginationLink
+                        isActive={pagination.page === pageNumber}
+                        onClick={() => handlePageChange(pageNumber)}
+                        className="cursor-pointer"
+                      >
+                        {pageNumber}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                },
+              )}
+
+              {pagination.totalPages > 5 &&
+                pagination.page < pagination.totalPages - 2 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() =>
+                    handlePageChange(
+                      Math.min(pagination.page + 1, pagination.totalPages),
+                    )
+                  }
+                  className={
+                    pagination.page >= pagination.totalPages
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </div>
     </div>
   );
