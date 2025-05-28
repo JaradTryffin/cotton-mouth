@@ -38,15 +38,18 @@ export async function POST(request: NextRequest) {
 
     // Basic validation
     if (!formData.firstName || !formData.lastName || !formData.phoneNumber) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
     // Create member directory
     const memberFilesDir = path.join(
-        process.env.HOME || process.env.USERPROFILE || "",
-        "Documents",
-        "cotton-mouth",
-        "members"
+      process.env.HOME || process.env.USERPROFILE || "",
+      "Documents",
+      "cotton-mouth",
+      "members",
     );
     if (!fs.existsSync(memberFilesDir)) {
       fs.mkdirSync(memberFilesDir, { recursive: true });
@@ -57,9 +60,21 @@ export async function POST(request: NextRequest) {
     fs.mkdirSync(memberDir);
 
     // Save files
-    const idFrontPath = await saveBase64File(formData.idFront, memberDir, "id_front");
-    const idBackPath = await saveBase64File(formData.idBack, memberDir, "id_back");
-    const signaturePath = await saveBase64File(formData.signature, memberDir, "signature");
+    const idFrontPath = await saveBase64File(
+      formData.idFront,
+      memberDir,
+      "id_front",
+    );
+    const idBackPath = await saveBase64File(
+      formData.idBack,
+      memberDir,
+      "id_back",
+    );
+    const signaturePath = await saveBase64File(
+      formData.signature,
+      memberDir,
+      "signature",
+    );
 
     // Prepare DB payload
     const memberData: {
@@ -110,8 +125,8 @@ export async function POST(request: NextRequest) {
     };
 
     fs.writeFileSync(
-        path.join(memberDir, "member_details.json"),
-        JSON.stringify(additionalData, null, 2)
+      path.join(memberDir, "member_details.json"),
+      JSON.stringify(additionalData, null, 2),
     );
 
     return NextResponse.json({
@@ -125,15 +140,18 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error creating member:", error);
-    return NextResponse.json({ error: "Failed to create member" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create member" },
+      { status: 500 },
+    );
   }
 }
 
 // Utility function
 async function saveBase64File(
-    base64Data: string,
-    directory: string,
-    fileName: string
+  base64Data: string,
+  directory: string,
+  fileName: string,
 ): Promise<string> {
   try {
     const base64Match = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
@@ -143,7 +161,8 @@ async function saveBase64File(
     if (base64Match) {
       const type = base64Match[1];
       if (type.includes("png")) fileExtension = ".png";
-      else if (type.includes("jpeg") || type.includes("jpg")) fileExtension = ".jpg";
+      else if (type.includes("jpeg") || type.includes("jpg"))
+        fileExtension = ".jpg";
       base64Content = base64Match[2];
     } else {
       base64Content = base64Data;
@@ -234,8 +253,15 @@ export async function GET(request: NextRequest) {
     // Get total count for pagination
     const totalCount = await prisma.member.count({ where });
 
+    // Transform the data to ensure consistent date formatting
+    const transformedMembers = members.map((member) => ({
+      ...member,
+      createdAt: member.createdAt.toISOString(),
+      updatedAt: member.updatedAt.toISOString(),
+    }));
+
     return NextResponse.json({
-      members,
+      members: transformedMembers,
       pagination: {
         total: totalCount,
         page,
@@ -246,8 +272,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error fetching members:", error);
     return NextResponse.json(
-        { error: "Failed to fetch members" },
-        { status: 500 }
+      { error: "Failed to fetch members" },
+      { status: 500 },
     );
   }
 }
