@@ -32,7 +32,6 @@ export const authOptions: AuthOptions = {
         if (!isPasswordValid) {
           return null;
         }
-console.log("user:",user)
         return {
           id: user.id,
           name: user.name,

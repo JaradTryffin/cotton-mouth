@@ -10,8 +10,6 @@ export default function LoginPage() {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
 
-  console.log("isAuthenticated",isAuthenticated)
-
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
