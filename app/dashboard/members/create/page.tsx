@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import MembershipForm from "@/components/members/membership-form";
 
 export const metadata: Metadata = {
   title: "New Member Registration",
@@ -17,7 +16,6 @@ export default function NewMemberPage() {
           Please complete the form below to register as a new member.
         </p>
       </div>
-      <MembershipForm />
     </div>
   );
 }
