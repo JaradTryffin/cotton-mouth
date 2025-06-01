@@ -91,6 +91,7 @@ export default function MembershipForm({
       icon: <User className="w-4 h-4" />,
       content: <PersonalInfoStep />,
       isValid: () => validatePersonalInfo().isValid,
+      getValidationErrors: () => validatePersonalInfo().errors,
     },
     {
       id: "address",
@@ -99,6 +100,7 @@ export default function MembershipForm({
       icon: <MapPin className="w-4 h-4" />,
       content: <AddressStep />,
       isValid: () => validateAddress().isValid,
+      getValidationErrors: () => validateAddress().errors,
     },
     {
       id: "verification",
@@ -107,6 +109,7 @@ export default function MembershipForm({
       icon: <Shield className="w-4 h-4" />,
       content: <VerificationStep />,
       isValid: () => validateVerification().isValid,
+      getValidationErrors: () => validateVerification().errors,
     },
     {
       id: "agreement",
@@ -115,6 +118,7 @@ export default function MembershipForm({
       icon: <FileText className="w-4 h-4" />,
       content: <AgreementStep />,
       isValid: () => validateAgreement().isValid,
+      getValidationErrors: () => validateAgreement().errors,
     },
   ];
 

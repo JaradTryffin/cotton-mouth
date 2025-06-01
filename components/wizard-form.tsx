@@ -3,7 +3,13 @@
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+  Info,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -11,6 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface WizardStep {
   id: string;
@@ -19,6 +26,7 @@ interface WizardStep {
   icon: ReactNode;
   content: ReactNode;
   isValid?: boolean | (() => boolean);
+  getValidationErrors?: () => string[];
 }
 
 interface WizardFormProps {
@@ -107,6 +115,17 @@ export function WizardForm({
 
   const canProceed = getStepValidity(currentStepData);
 
+  // Get validation errors for current step
+  const getValidationErrors = () => {
+    if (currentStepData.getValidationErrors) {
+      return currentStepData.getValidationErrors();
+    }
+    return [];
+  };
+
+  const validationErrors = getValidationErrors();
+  const hasValidationErrors = validationErrors.length > 0;
+
   const wizardContent = (
     <div className={cn("flex h-full w-full min-h-[600px]", className)}>
       {/* Left Sidebar - Steps */}
@@ -183,11 +202,43 @@ export function WizardForm({
 
         {/* Content */}
         <div className="flex-1 p-6 overflow-y-auto">
-          <Card>
-            <CardContent className="p-6">
-              {currentStepData?.content}
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            {/* Validation Feedback */}
+            {!canProceed && hasValidationErrors && (
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertDescription>
+                  <div className="text-amber-800">
+                    <p className="font-medium mb-2">
+                      Please complete the following:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      {validationErrors.map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Success feedback when step is valid */}
+            {canProceed && !isStepCompleted(currentStep) && (
+              <Alert className="border-green-200 bg-green-50">
+                <Check className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">
+                  Great! This step is complete. You can proceed to the next
+                  step.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <Card>
+              <CardContent className="p-6">
+                {currentStepData?.content}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Footer */}
@@ -199,35 +250,45 @@ export function WizardForm({
               </Button>
             </div>
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handlePrevious}
-                disabled={currentStep === 0}
-                className="flex items-center gap-2"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Previous
-              </Button>
-
-              {isLastStep ? (
-                <Button
-                  onClick={handleComplete}
-                  disabled={!canProceed}
-                  className="flex items-center gap-2"
-                >
-                  {mode === "edit" ? "Save Changes" : "Complete"}
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleNext}
-                  disabled={!canProceed}
-                  className="flex items-center gap-2"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+            <div className="flex items-center gap-4">
+              {/* Validation status indicator */}
+              {!canProceed && (
+                <div className="flex items-center gap-2 text-sm text-amber-600">
+                  <Info className="w-4 h-4" />
+                  <span>Complete required fields to continue</span>
+                </div>
               )}
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={currentStep === 0}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+
+                {isLastStep ? (
+                  <Button
+                    onClick={handleComplete}
+                    disabled={!canProceed}
+                    className="flex items-center gap-2"
+                  >
+                    {mode === "edit" ? "Save Changes" : "Complete"}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleNext}
+                    disabled={!canProceed}
+                    className="flex items-center gap-2"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
