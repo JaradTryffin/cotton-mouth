@@ -21,15 +21,6 @@ export default function MembersPage() {
             Manage and view all club members
           </p>
         </div>
-        {/*<Button asChild>*/}
-        {/*  <Link*/}
-        {/*    href="/dashboard/members/create"*/}
-        {/*    className="flex items-center gap-1"*/}
-        {/*  >*/}
-        {/*    <PlusCircle className="mr-1 h-4 w-4" />*/}
-        {/*    New Member*/}
-        {/*  </Link>*/}
-        {/*</Button>*/}
         <MembershipForm trigger={ <Button className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Create New Member

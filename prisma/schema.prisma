@@ -19,27 +19,43 @@ model User {
 }
 
 model Member {
-  id              String     @id @default(uuid())
-  firstName       String
-  lastName        String
-  email           String?    @unique
-  phoneNumber     String?
-  membershipType  String
-  balance         Float      @default(0)
-  isActive        Boolean    @default(true)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  idFront         String?
-  idBack          String?
-  appLinked       Boolean    @default(false)
-  username        String?    @unique
-  createdById     String
-  referredById    String?
-  donations       Donation[]
-  createdBy       User       @relation("CreatedBy", fields: [createdById], references: [id])
-  referredBy      Member?    @relation("Referrals", fields: [referredById], references: [id])
-  referredMembers Member[]   @relation("Referrals")
-  orders          Order[]
+  id             String   @id @default(uuid())
+  firstName      String
+  lastName       String
+  email          String?  @unique
+  phoneNumber    String?
+  membershipType String
+  tokenBalance   Float    @default(0) // Changed from 'balance' to 'tokenBalance'
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  idFront        String?
+  idBack         String?
+  appLinked      Boolean  @default(false)
+  username       String?  @unique
+  createdById    String
+  referredById   String?
+
+  // Relationships
+  donations         Donation[]
+  tokenTransactions TokenTransaction[] // New: Track token movements
+  createdBy         User               @relation("CreatedBy", fields: [createdById], references: [id])
+  referredBy        Member?            @relation("Referrals", fields: [referredById], references: [id])
+  referredMembers   Member[]           @relation("Referrals")
+  orders            Order[]
+}
+
+// New model to track token transactions
+model TokenTransaction {
+  id          String   @id @default(uuid())
+  memberId    String
+  amount      Float // Positive for credits, negative for debits
+  type        String // "DONATION", "PURCHASE", "ADJUSTMENT", "REFUND"
+  description String? // Optional description
+  relatedId   String? // Related donation or order ID
+  createdAt   DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id])
 }
 
 model Product {
@@ -47,7 +63,7 @@ model Product {
   name            String
   category        String
   description     String?
-  price           Float
+  tokenPrice      Float // Changed from 'price' to 'tokenPrice'
   unit            String
   stock           Float       @default(0)
   jarWeight       Float?
@@ -60,32 +76,36 @@ model Product {
 }
 
 model Order {
-  id        String      @id @default(uuid())
-  total     Float
-  status    String      @default("completed")
-  createdAt DateTime    @default(now())
-  memberId  String
-  member    Member      @relation(fields: [memberId], references: [id])
-  items     OrderItem[]
+  id          String   @id @default(uuid())
+  totalTokens Float // Changed from 'total' to 'totalTokens'
+  status      String   @default("completed")
+  createdAt   DateTime @default(now())
+  memberId    String
+
+  member Member      @relation(fields: [memberId], references: [id])
+  items  OrderItem[]
 }
 
 model OrderItem {
-  id        String  @id @default(uuid())
-  quantity  Float
-  price     Float
-  orderId   String
-  productId String
-  order     Order   @relation(fields: [orderId], references: [id])
-  product   Product @relation(fields: [productId], references: [id])
+  id         String @id @default(uuid())
+  quantity   Float
+  tokenPrice Float // Changed from 'price' to 'tokenPrice'
+  orderId    String
+  productId  String
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 }
 
 model Donation {
-  id        String   @id @default(uuid())
-  amount    Float
-  method    String
-  createdAt DateTime @default(now())
-  memberId  String?
-  member    Member?  @relation(fields: [memberId], references: [id])
+  id           String   @id @default(uuid())
+  amount       Float // Cash amount donated (in Rands)
+  tokensIssued Float // Tokens issued (should equal amount in 1:1 ratio)
+  method       String // "cash", "card", "eft"
+  createdAt    DateTime @default(now())
+  memberId     String?
+
+  member Member? @relation(fields: [memberId], references: [id])
 }
 
 model Workstation {

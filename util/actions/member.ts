@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 export async function getMemberById(id: string) {
   try {
-    return await prisma.member.findUnique({
+    const member = await prisma.member.findUnique({
       where: { id },
       include: {
         createdBy: {
@@ -54,6 +54,21 @@ export async function getMemberById(id: string) {
         },
       },
     });
+
+    if (!member) return null;
+
+    // Map the new field names to the old ones for backward compatibility
+    return {
+      ...member,
+      orders: member.orders.map(order => ({
+        ...order,
+        total: order.totalTokens, // Map totalTokens back to total
+        items: order.items.map(item => ({
+          ...item,
+          price: item.tokenPrice, // Map tokenPrice back to price
+        })),
+      })),
+    };
   } catch (error) {
     console.error("Error fetching member:", error);
     return null;

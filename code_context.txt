@@ -4,16 +4,13 @@
 import * as React from "react"
 import {
   IconCamera,
-  IconChartBar,
   IconDashboard,
   IconDatabase,
   IconFileAi,
   IconFileDescription,
   IconFileWord,
-  IconFolder,
   IconHelp,
   IconInnerShadowTop,
-  IconListDetails,
   IconReport,
   IconSearch,
   IconSettings,
@@ -45,21 +42,6 @@ const data = {
       title: "Dashboard",
       url: "#",
       icon: IconDashboard,
-    },
-    {
-      title: "Lifecycle",
-      url: "#",
-      icon: IconListDetails,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
-    },
-    {
-      title: "Projects",
-      url: "#",
-      icon: IconFolder,
     },
     {
       title: "Members",
@@ -134,19 +116,9 @@ const data = {
   ],
   documents: [
     {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
       name: "Reports",
       url: "#",
       icon: IconReport,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord,
     },
   ],
 }
@@ -179,6 +151,135 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarFooter>
     </Sidebar>
   )
+}
+
+// File: components/breadcrumb-nav.tsx
+"use client";
+
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+
+interface BreadcrumbConfig {
+  [key: string]: {
+    label: string;
+    href?: string;
+    dynamic?: boolean;
+  };
+}
+
+interface DynamicBreadcrumbProps {
+  memberName?: string;
+  customConfig?: BreadcrumbConfig;
+}
+
+const defaultBreadcrumbConfig: BreadcrumbConfig = {
+  dashboard: {
+    label: "Dashboard",
+    href: "/dashboard",
+  },
+  members: {
+    label: "Members",
+    href: "/dashboard/members",
+  },
+  create: {
+    label: "Create",
+  },
+  "registration-success": {
+    label: "Registration Success",
+  },
+  // Add more routes as needed
+  projects: {
+    label: "Projects",
+    href: "/dashboard/projects",
+  },
+  analytics: {
+    label: "Analytics",
+    href: "/dashboard/analytics",
+  },
+  lifecycle: {
+    label: "Lifecycle",
+    href: "/dashboard/lifecycle",
+  },
+};
+
+export function DynamicBreadcrumb({
+  memberName,
+  customConfig = {},
+}: DynamicBreadcrumbProps) {
+  const pathname = usePathname();
+  const pathSegments = pathname.split("/").filter(Boolean);
+
+  // Merge default config with custom config
+  const breadcrumbConfig = { ...defaultBreadcrumbConfig, ...customConfig };
+
+  // Generate breadcrumb items
+  const breadcrumbItems = pathSegments.map((segment, index) => {
+    const isLast = index === pathSegments.length - 1;
+    const href = "/" + pathSegments.slice(0, index + 1).join("/");
+
+    // Check if this is a member ID (UUID pattern)
+    const isUUID =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        segment,
+      );
+
+    let label = segment;
+    let linkHref = href;
+
+    if (breadcrumbConfig[segment]) {
+      label = breadcrumbConfig[segment].label;
+      linkHref = breadcrumbConfig[segment].href || href;
+    } else if (isUUID && memberName) {
+      // If it's a UUID and we have a member name, use the member name
+      label = memberName;
+    } else {
+      // Format segment name (capitalize and replace hyphens with spaces)
+      label = segment
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+    }
+
+    return {
+      label,
+      href: linkHref,
+      isLast,
+      segment,
+    };
+  });
+
+  if (breadcrumbItems.length === 0) {
+    return null;
+  }
+
+  return (
+    <Breadcrumb>
+      <BreadcrumbList>
+        {breadcrumbItems.map((item, index) => (
+          <div key={item.segment} className="flex items-center">
+            <BreadcrumbItem>
+              {item.isLast ? (
+                <BreadcrumbPage>{item.label}</BreadcrumbPage>
+              ) : (
+                <BreadcrumbLink asChild>
+                  <Link href={item.href}>{item.label}</Link>
+                </BreadcrumbLink>
+              )}
+            </BreadcrumbItem>
+            {!item.isLast && <BreadcrumbSeparator />}
+          </div>
+        ))}
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
 }
 
 // File: components/chart-area-interactive.tsx
@@ -1544,6 +1645,8 @@ export function LoginForm({
   );
 }
 
+// File: components/members/member-detail/donation-form.tsx
+"use client"
 // File: components/members/member-detail-view.tsx
 "use client";
 
@@ -1599,7 +1702,7 @@ interface MemberDetailViewProps {
     email: string | null;
     phoneNumber: string | null;
     membershipType: string;
-    balance: number;
+    tokenBalance: number;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -1750,13 +1853,16 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">Token Balance</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${member.balance.toFixed(2)}
+              {member.tokenBalance.toFixed(0)} tokens
             </div>
+            <p className="text-xs text-muted-foreground">
+              Equivalent to R{member.tokenBalance.toFixed(2)}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -2145,7 +2251,7 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
                 </Table>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  This member hasn't referred anyone yet.
+                  This member hasn&#39;t referred anyone yet.
                 </div>
               )}
             </CardContent>
@@ -2225,7 +2331,7 @@ interface Member {
   phoneNumber?: string;
   membershipType: string;
   isActive: boolean;
-  balance: number;
+  tokenBalance: number;
   createdAt: string;
   appLinked: boolean;
   referredBy?: {
@@ -2365,8 +2471,8 @@ export function MembersTable() {
         valueB = new Date(b.createdAt).getTime();
         break;
       case "balance":
-        valueA = a.balance;
-        valueB = b.balance;
+        valueA = a.tokenBalance;
+        valueB = b.tokenBalance;
         break;
       default:
         return 0;
@@ -2725,7 +2831,7 @@ export function MembersTable() {
                     onClick={() => handleSort("balance")}
                   >
                     <div className="flex items-center">
-                      <span>Balance</span>
+                      <span>Token Balance</span>
                       {getSortIcon("balance")}
                     </div>
                   </TableHead>
@@ -2805,7 +2911,7 @@ export function MembersTable() {
                           {member.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
-                      <TableCell>R{member.balance.toFixed(2)}</TableCell>
+                      <TableCell>R{member.tokenBalance.toFixed(0)}</TableCell>
                       <TableCell>
                         {format(new Date(member.createdAt), "MMM d, yyyy")}
                       </TableCell>
@@ -3965,10 +4071,16 @@ export function SignaturePad({
 }
 
 // File: components/site-header.tsx
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { DynamicBreadcrumb } from "@/components/breadcrumb-nav";
 
-export function SiteHeader() {
+interface SiteHeaderProps {
+  memberName?: string;
+  customTitle?: string;
+}
+
+export function SiteHeader({ memberName, customTitle }: SiteHeaderProps) {
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
@@ -3977,10 +4089,14 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <h1 className="text-base font-medium">Documents</h1>
+        {customTitle ? (
+          <h1 className="text-base font-medium">{customTitle}</h1>
+        ) : (
+          <DynamicBreadcrumb memberName={memberName} />
+        )}
       </div>
     </header>
-  )
+  );
 }
 
 // File: components/steps.tsx
@@ -8870,6 +8986,81 @@ console.log('pass:',hashedPassword)
   }
 ]
 
+// File: app/dashboard/donations/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import prisma from "@/lib/prisma";
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { memberId, amount, method } = await request.json();
+
+    if (!memberId || !amount || amount <= 0) {
+      return NextResponse.json(
+        { error: "Invalid donation data" },
+        { status: 400 },
+      );
+    }
+
+    // Convert R1 = 1 token (1:1 ratio)
+    const tokensToIssue = amount;
+
+    // Start transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create donation record
+      const donation = await tx.donation.create({
+        data: {
+          amount: amount,
+          tokensIssued: tokensToIssue,
+          method: method,
+          memberId: memberId,
+        },
+      });
+
+      // Update member token balance
+      await tx.member.update({
+        where: { id: memberId },
+        data: {
+          tokenBalance: {
+            increment: tokensToIssue,
+          },
+        },
+      });
+
+      // Create token transaction record
+      await tx.tokenTransaction.create({
+        data: {
+          memberId: memberId,
+          amount: tokensToIssue,
+          type: "DONATION",
+          description: `Donation: R${amount} = ${tokensToIssue} tokens`,
+          relatedId: donation.id,
+        },
+      });
+
+      return donation;
+    });
+
+    return NextResponse.json({
+      success: true,
+      donation: result,
+      tokensIssued: tokensToIssue,
+    });
+  } catch (error) {
+    console.error("Error processing donation:", error);
+    return NextResponse.json(
+      { error: "Failed to process donation" },
+      { status: 500 },
+    );
+  }
+}
+
 // File: app/dashboard/layout.tsx
 import { ReactNode } from "react";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -8973,15 +9164,6 @@ export default function MembersPage() {
             Manage and view all club members
           </p>
         </div>
-        {/*<Button asChild>*/}
-        {/*  <Link*/}
-        {/*    href="/dashboard/members/create"*/}
-        {/*    className="flex items-center gap-1"*/}
-        {/*  >*/}
-        {/*    <PlusCircle className="mr-1 h-4 w-4" />*/}
-        {/*    New Member*/}
-        {/*  </Link>*/}
-        {/*</Button>*/}
         <MembershipForm trigger={ <Button className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Create New Member
@@ -9566,6 +9748,55 @@ ALTER TABLE "Donation" ADD CONSTRAINT "Donation_memberId_fkey" FOREIGN KEY ("mem
 -- AddForeignKey
 ALTER TABLE "Shift" ADD CONSTRAINT "Shift_businessDayId_fkey" FOREIGN KEY ("businessDayId") REFERENCES "BusinessDay"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
+// File: prisma/migrations/20250603161437_cater_for_tokens/migration.sql
+/*
+  Warnings:
+
+  - You are about to drop the column `balance` on the `Member` table. All the data in the column will be lost.
+  - You are about to drop the column `total` on the `Order` table. All the data in the column will be lost.
+  - You are about to drop the column `price` on the `OrderItem` table. All the data in the column will be lost.
+  - You are about to drop the column `price` on the `Product` table. All the data in the column will be lost.
+  - Added the required column `tokensIssued` to the `Donation` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `totalTokens` to the `Order` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `tokenPrice` to the `OrderItem` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `tokenPrice` to the `Product` table without a default value. This is not possible if the table is not empty.
+
+*/
+-- AlterTable
+ALTER TABLE "Donation" ADD COLUMN     "tokensIssued" DOUBLE PRECISION NOT NULL;
+
+-- AlterTable
+ALTER TABLE "Member" DROP COLUMN "balance",
+ADD COLUMN     "tokenBalance" DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "Order" DROP COLUMN "total",
+ADD COLUMN     "totalTokens" DOUBLE PRECISION NOT NULL;
+
+-- AlterTable
+ALTER TABLE "OrderItem" DROP COLUMN "price",
+ADD COLUMN     "tokenPrice" DOUBLE PRECISION NOT NULL;
+
+-- AlterTable
+ALTER TABLE "Product" DROP COLUMN "price",
+ADD COLUMN     "tokenPrice" DOUBLE PRECISION NOT NULL;
+
+-- CreateTable
+CREATE TABLE "TokenTransaction" (
+    "id" TEXT NOT NULL,
+    "memberId" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "type" TEXT NOT NULL,
+    "description" TEXT,
+    "relatedId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TokenTransaction_pkey" PRIMARY KEY ("id")
+);
+
+-- AddForeignKey
+ALTER TABLE "TokenTransaction" ADD CONSTRAINT "TokenTransaction_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "Member"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
 // File: prisma/migrations/migration_lock.toml
 # Please do not edit this file manually
 # It should be added in your version-control system (e.g., Git)
@@ -9593,27 +9824,43 @@ model User {
 }
 
 model Member {
-  id              String     @id @default(uuid())
-  firstName       String
-  lastName        String
-  email           String?    @unique
-  phoneNumber     String?
-  membershipType  String
-  balance         Float      @default(0)
-  isActive        Boolean    @default(true)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  idFront         String?
-  idBack          String?
-  appLinked       Boolean    @default(false)
-  username        String?    @unique
-  createdById     String
-  referredById    String?
-  donations       Donation[]
-  createdBy       User       @relation("CreatedBy", fields: [createdById], references: [id])
-  referredBy      Member?    @relation("Referrals", fields: [referredById], references: [id])
-  referredMembers Member[]   @relation("Referrals")
-  orders          Order[]
+  id             String   @id @default(uuid())
+  firstName      String
+  lastName       String
+  email          String?  @unique
+  phoneNumber    String?
+  membershipType String
+  tokenBalance   Float    @default(0) // Changed from 'balance' to 'tokenBalance'
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  idFront        String?
+  idBack         String?
+  appLinked      Boolean  @default(false)
+  username       String?  @unique
+  createdById    String
+  referredById   String?
+
+  // Relationships
+  donations         Donation[]
+  tokenTransactions TokenTransaction[] // New: Track token movements
+  createdBy         User               @relation("CreatedBy", fields: [createdById], references: [id])
+  referredBy        Member?            @relation("Referrals", fields: [referredById], references: [id])
+  referredMembers   Member[]           @relation("Referrals")
+  orders            Order[]
+}
+
+// New model to track token transactions
+model TokenTransaction {
+  id          String   @id @default(uuid())
+  memberId    String
+  amount      Float // Positive for credits, negative for debits
+  type        String // "DONATION", "PURCHASE", "ADJUSTMENT", "REFUND"
+  description String? // Optional description
+  relatedId   String? // Related donation or order ID
+  createdAt   DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id])
 }
 
 model Product {
@@ -9621,7 +9868,7 @@ model Product {
   name            String
   category        String
   description     String?
-  price           Float
+  tokenPrice      Float // Changed from 'price' to 'tokenPrice'
   unit            String
   stock           Float       @default(0)
   jarWeight       Float?
@@ -9634,32 +9881,36 @@ model Product {
 }
 
 model Order {
-  id        String      @id @default(uuid())
-  total     Float
-  status    String      @default("completed")
-  createdAt DateTime    @default(now())
-  memberId  String
-  member    Member      @relation(fields: [memberId], references: [id])
-  items     OrderItem[]
+  id          String   @id @default(uuid())
+  totalTokens Float // Changed from 'total' to 'totalTokens'
+  status      String   @default("completed")
+  createdAt   DateTime @default(now())
+  memberId    String
+
+  member Member      @relation(fields: [memberId], references: [id])
+  items  OrderItem[]
 }
 
 model OrderItem {
-  id        String  @id @default(uuid())
-  quantity  Float
-  price     Float
-  orderId   String
-  productId String
-  order     Order   @relation(fields: [orderId], references: [id])
-  product   Product @relation(fields: [productId], references: [id])
+  id         String @id @default(uuid())
+  quantity   Float
+  tokenPrice Float // Changed from 'price' to 'tokenPrice'
+  orderId    String
+  productId  String
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 }
 
 model Donation {
-  id        String   @id @default(uuid())
-  amount    Float
-  method    String
-  createdAt DateTime @default(now())
-  memberId  String?
-  member    Member?  @relation(fields: [memberId], references: [id])
+  id           String   @id @default(uuid())
+  amount       Float // Cash amount donated (in Rands)
+  tokensIssued Float // Tokens issued (should equal amount in 1:1 ratio)
+  method       String // "cash", "card", "eft"
+  createdAt    DateTime @default(now())
+  memberId     String?
+
+  member Member? @relation(fields: [memberId], references: [id])
 }
 
 model Workstation {

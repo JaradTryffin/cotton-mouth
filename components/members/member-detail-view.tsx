@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { updateMember } from "@/util/actions/member";
 import { useRouter } from "next/navigation";
+import DonationForm from "@/components/members/member-detail/donations/donation-form";
 
 interface MemberDetailViewProps {
   member: {
@@ -52,7 +53,7 @@ interface MemberDetailViewProps {
     email: string | null;
     phoneNumber: string | null;
     membershipType: string;
-    balance: number;
+    tokenBalance: number;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -203,13 +204,16 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">Token Balance</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${member.balance.toFixed(2)}
+              {member.tokenBalance.toFixed(0)} tokens
             </div>
+            <p className="text-xs text-muted-foreground">
+              Equivalent to R{member.tokenBalance.toFixed(2)}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -526,6 +530,15 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <DonationForm
+                memberId={member.id}
+                trigger={
+                  <Button size="sm" variant="outline">
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Add Donation
+                  </Button>
+                }
+              />
               {member.donations.length > 0 ? (
                 <Table>
                   <TableHeader>
@@ -598,7 +611,7 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
                 </Table>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  This member hasn't referred anyone yet.
+                  This member hasn&#39;t referred anyone yet.
                 </div>
               )}
             </CardContent>

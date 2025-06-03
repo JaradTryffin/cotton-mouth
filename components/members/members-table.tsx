@@ -66,7 +66,7 @@ interface Member {
   phoneNumber?: string;
   membershipType: string;
   isActive: boolean;
-  balance: number;
+  tokenBalance: number;
   createdAt: string;
   appLinked: boolean;
   referredBy?: {
@@ -206,8 +206,8 @@ export function MembersTable() {
         valueB = new Date(b.createdAt).getTime();
         break;
       case "balance":
-        valueA = a.balance;
-        valueB = b.balance;
+        valueA = a.tokenBalance;
+        valueB = b.tokenBalance;
         break;
       default:
         return 0;
@@ -566,7 +566,7 @@ export function MembersTable() {
                     onClick={() => handleSort("balance")}
                   >
                     <div className="flex items-center">
-                      <span>Balance</span>
+                      <span>Token Balance</span>
                       {getSortIcon("balance")}
                     </div>
                   </TableHead>
@@ -646,7 +646,7 @@ export function MembersTable() {
                           {member.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
-                      <TableCell>R{member.balance.toFixed(2)}</TableCell>
+                      <TableCell>R{member.tokenBalance.toFixed(0)}</TableCell>
                       <TableCell>
                         {format(new Date(member.createdAt), "MMM d, yyyy")}
                       </TableCell>
