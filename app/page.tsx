@@ -13,8 +13,8 @@ export default function Home() {
   return (
     <div className="w-full h-screen flex justify-center items-center">
       <div className="flex flex-col">
-        <PacmanLoader color="#59e4a8"  size={150}/>
-        <h1 className="text-lg font-bold mt-4 pr-5">Starting up...</h1>
+        <PacmanLoader color="#59e4a8"  size={100}/>
+        <h1 className="text-3xl mt-10">Starting up...</h1>
       </div>
 
     </div>
