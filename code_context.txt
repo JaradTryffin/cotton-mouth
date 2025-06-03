@@ -1544,6 +1544,618 @@ export function LoginForm({
   );
 }
 
+// File: components/members/member-detail-view.tsx
+"use client";
+
+import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Edit,
+  Save,
+  X,
+  DollarSign,
+  ShoppingCart,
+  Users,
+  FileText,
+  Smartphone,
+} from "lucide-react";
+import { updateMember } from "@/util/actions/member";
+import { useRouter } from "next/navigation";
+
+interface MemberDetailViewProps {
+  member: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    phoneNumber: string | null;
+    membershipType: string;
+    balance: number;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    idFront: string | null;
+    idBack: string | null;
+    appLinked: boolean;
+    username: string | null;
+    referredById: string | null;
+    createdBy: {
+      name: string;
+      email: string;
+    };
+    orders: Array<{
+      id: string;
+      total: number;
+      status: string;
+      createdAt: Date;
+      items: Array<{
+        id: string;
+        quantity: number;
+        price: number;
+        product: {
+          name: string;
+          category: string;
+        };
+      }>;
+    }>;
+    donations: Array<{
+      id: string;
+      amount: number;
+      method: string;
+      createdAt: Date;
+    }>;
+    referredMembers: Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      createdAt: Date;
+    }>;
+    referredBy: {
+      id: string;
+      firstName: string;
+      lastName: string;
+    } | null;
+  };
+}
+
+export function MemberDetailView({ member }: MemberDetailViewProps) {
+  const router = useRouter();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedMember, setEditedMember] = useState({
+    firstName: member.firstName,
+    lastName: member.lastName,
+    email: member.email || "",
+    phoneNumber: member.phoneNumber || "",
+    membershipType: member.membershipType,
+    isActive: member.isActive,
+    appLinked: member.appLinked,
+    username: member.username || "",
+  });
+
+  const handleSave = async () => {
+    try {
+      await updateMember(member.id, editedMember);
+      setIsEditing(false);
+      router.refresh();
+      // You might want to refresh the data here
+    } catch (error) {
+      console.error("Failed to update member:", error);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditedMember({
+      firstName: member.firstName,
+      lastName: member.lastName,
+      email: member.email || "",
+      phoneNumber: member.phoneNumber || "",
+      membershipType: member.membershipType,
+      isActive: member.isActive,
+      appLinked: member.appLinked,
+      username: member.username || "",
+    });
+    setIsEditing(false);
+  };
+
+  const totalSpent = member.orders.reduce((sum, order) => sum + order.total, 0);
+  const totalDonations = member.donations.reduce(
+    (sum, donation) => sum + donation.amount,
+    0,
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center space-x-4">
+          <Avatar className="h-20 w-20">
+            <AvatarImage src={`/placeholder.svg?height=80&width=80`} />
+            <AvatarFallback className="text-lg">
+              {member.firstName[0]}
+              {member.lastName[0]}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h1 className="text-3xl font-bold">
+              {member.firstName} {member.lastName}
+            </h1>
+            <div className="flex items-center space-x-2 mt-1">
+              <Badge variant={member.isActive ? "default" : "secondary"}>
+                {member.isActive ? "Active" : "Inactive"}
+              </Badge>
+              <Badge variant="outline">{member.membershipType}</Badge>
+              {member.appLinked && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Smartphone className="h-3 w-3" />
+                  App Linked
+                </Badge>
+              )}
+            </div>
+            <p className="text-muted-foreground mt-1">
+              Member since {member.createdAt.toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+        <div className="flex space-x-2">
+          {isEditing ? (
+            <>
+              <Button onClick={handleSave} size="sm">
+                <Save className="h-4 w-4 mr-2" />
+                Save
+              </Button>
+              <Button onClick={handleCancel} variant="outline" size="sm">
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => setIsEditing(true)} size="sm">
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Balance</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ${member.balance.toFixed(2)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${totalSpent.toFixed(2)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{member.orders.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Referrals</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {member.referredMembers.length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="personal" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="personal">Personal Information</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="donations">Donations</TabsTrigger>
+          <TabsTrigger value="referrals">Referrals</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="personal" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Personal Information</CardTitle>
+              <CardDescription>
+                Member details and contact information
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  {isEditing ? (
+                    <Input
+                      id="firstName"
+                      value={editedMember.firstName}
+                      onChange={(e) =>
+                        setEditedMember({
+                          ...editedMember,
+                          firstName: e.target.value,
+                        })
+                      }
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded">
+                      {member.firstName}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  {isEditing ? (
+                    <Input
+                      id="lastName"
+                      value={editedMember.lastName}
+                      onChange={(e) =>
+                        setEditedMember({
+                          ...editedMember,
+                          lastName: e.target.value,
+                        })
+                      }
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded">
+                      {member.lastName}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  {isEditing ? (
+                    <Input
+                      id="email"
+                      type="email"
+                      value={editedMember.email}
+                      onChange={(e) =>
+                        setEditedMember({
+                          ...editedMember,
+                          email: e.target.value,
+                        })
+                      }
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded">
+                      {member.email || "Not provided"}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  {isEditing ? (
+                    <Input
+                      id="phoneNumber"
+                      value={editedMember.phoneNumber}
+                      onChange={(e) =>
+                        setEditedMember({
+                          ...editedMember,
+                          phoneNumber: e.target.value,
+                        })
+                      }
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded">
+                      {member.phoneNumber || "Not provided"}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="membershipType">Membership Type</Label>
+                  {isEditing ? (
+                    <Select
+                      value={editedMember.membershipType}
+                      onValueChange={(value) =>
+                        setEditedMember({
+                          ...editedMember,
+                          membershipType: value,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="basic">Basic</SelectItem>
+                        <SelectItem value="premium">Premium</SelectItem>
+                        <SelectItem value="vip">VIP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="p-2 bg-muted rounded">
+                      {member.membershipType}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="username">App Username</Label>
+                  {isEditing ? (
+                    <Input
+                      id="username"
+                      value={editedMember.username}
+                      onChange={(e) =>
+                        setEditedMember({
+                          ...editedMember,
+                          username: e.target.value,
+                        })
+                      }
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded">
+                      {member.username || "Not set"}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Active Status</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Member can make purchases
+                    </p>
+                  </div>
+                  {isEditing ? (
+                    <Switch
+                      checked={editedMember.isActive}
+                      onCheckedChange={(checked) =>
+                        setEditedMember({ ...editedMember, isActive: checked })
+                      }
+                    />
+                  ) : (
+                    <Badge variant={member.isActive ? "default" : "secondary"}>
+                      {member.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>App Integration</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Member linked to mobile app
+                    </p>
+                  </div>
+                  {isEditing ? (
+                    <Switch
+                      checked={editedMember.appLinked}
+                      onCheckedChange={(checked) =>
+                        setEditedMember({ ...editedMember, appLinked: checked })
+                      }
+                    />
+                  ) : (
+                    <Badge variant={member.appLinked ? "default" : "secondary"}>
+                      {member.appLinked ? "Linked" : "Not Linked"}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label>Created By</Label>
+                <div className="p-2 bg-muted rounded">
+                  {member.createdBy.name} ({member.createdBy.email})
+                </div>
+              </div>
+
+              {member.referredBy && (
+                <div className="space-y-2">
+                  <Label>Referred By</Label>
+                  <div className="p-2 bg-muted rounded">
+                    {member.referredBy.firstName} {member.referredBy.lastName}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="orders" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Order History</CardTitle>
+              <CardDescription>
+                All orders placed by this member
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {member.orders.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {member.orders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-mono text-sm">
+                          {order.id.slice(0, 8)}...
+                        </TableCell>
+                        <TableCell>
+                          {order.createdAt.toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {order.items.map((item) => (
+                              <div key={item.id} className="text-sm">
+                                {item.quantity}x {item.product.name}
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              order.status === "completed"
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
+                            {order.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          ${order.total.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No orders found for this member.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="donations" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Donation History</CardTitle>
+              <CardDescription>
+                All donations made by this member
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {member.donations.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {member.donations.map((donation) => (
+                      <TableRow key={donation.id}>
+                        <TableCell>
+                          {donation.createdAt.toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{donation.method}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          ${donation.amount.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No donations found for this member.
+                </div>
+              )}
+              {totalDonations > 0 && (
+                <div className="mt-4 pt-4 border-t">
+                  <div className="flex justify-between items-center font-medium">
+                    <span>Total Donations:</span>
+                    <span>${totalDonations.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="referrals" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Referral Network</CardTitle>
+              <CardDescription>Members referred by this member</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {member.referredMembers.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Joined Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {member.referredMembers.map((referredMember) => (
+                      <TableRow key={referredMember.id}>
+                        <TableCell>
+                          {referredMember.firstName} {referredMember.lastName}
+                        </TableCell>
+                        <TableCell>
+                          {referredMember.createdAt.toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  This member hasn't referred anyone yet.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
 // File: components/members/members-table.tsx
 "use client";
 
@@ -1602,6 +2214,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 // Type definitions
 interface Member {
@@ -1643,6 +2256,7 @@ type SortField =
   | null;
 
 export function MembersTable() {
+  const router = useRouter();
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -2139,7 +2753,11 @@ export function MembersTable() {
                   </TableRow>
                 ) : sortedMembers.length > 0 ? (
                   sortedMembers.map((member) => (
-                    <TableRow key={member.id}>
+                    <TableRow
+                      className="cursor-pointer"
+                      key={member.id}
+                      onClick={() => router.push(`/dashboard/members/${member.id}`)}
+                    >
                       <TableCell>
                         <Checkbox
                           checked={selectedMembers.includes(member.id)}
@@ -2340,168 +2958,60 @@ export function MembersTable() {
 // File: components/members/membership-form.tsx
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { format } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { User, MapPin, Shield, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { WizardForm } from "../wizard-form";
+import { useMembershipStore } from "@/store/membership-store";
+import { membershipFormSchema } from "@/util/members/member-validation";
+import { PersonalInfoStep } from "@/components/members/wizard-form/personal-info-step";
+import { AddressStep } from "@/components/members/wizard-form/address-step";
+import { VerificationStep } from "@/components/members/wizard-form/verification-step";
+import { AgreementStep } from "@/components/members/wizard-form/agreement-step";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { FileUploader } from "../file-uploader";
-import { SignaturePad } from "../signature-pad";
-import { Steps } from "../steps";
-import { UserAgreement } from "@/components/user-agreement";
-
-const membershipFormSchema = z.object({
-  firstName: z
-    .string()
-    .min(2, { message: "First name must be at least 2 characters" }),
-  lastName: z
-    .string()
-    .min(2, { message: "Last name must be at least 2 characters" }),
-  dateOfBirth: z
-    .date({
-      required_error: "Date of birth is required",
-    })
-    .refine(
-      (date) => {
-        const today = new Date();
-        const age = today.getFullYear() - date.getFullYear();
-        const m = today.getMonth() - date.getMonth();
-        return m < 0 || (m === 0 && today.getDate() < date.getDate())
-          ? age - 1 >= 21
-          : age >= 21;
-      },
-      { message: "You must be at least 21 years old" },
-    ),
-  email: z
-    .string()
-    .email({ message: "Please enter a valid email address" })
-    .optional(),
-  phoneNumber: z
-    .string()
-    .min(10, { message: "Please enter a valid phone number" }),
-  address: z.string().min(5, { message: "Address is required" }),
-  city: z.string().min(2, { message: "City is required" }),
-  state: z.string().min(2, { message: "State is required" }),
-  zipCode: z.string().min(5, { message: "ZIP code is required" }),
-  membershipType: z.string({
-    required_error: "Please select a membership type",
-  }),
-  idFront: z.string().min(1, { message: "Front of ID is required" }),
-  idBack: z.string().min(1, { message: "Back of ID is required" }),
-  termsAgreed: z.boolean().refine((val) => val === true, {
-    message: "You must agree to the terms and conditions",
-  }),
-  signature: z.string().min(1, { message: "Signature is required" }),
-  referrerId: z.string().optional(),
-});
-
-export type MembershipFormValues = z.infer<typeof membershipFormSchema>;
+interface MembershipFormProps {
+  referrerId?: string;
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
 
 export default function MembershipForm({
   referrerId,
-}: {
-  referrerId?: string;
-}) {
+  trigger,
+  open,
+  onOpenChange,
+}: MembershipFormProps) {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {
+    formData,
+    updateField,
+    setSubmitting,
+    resetForm,
+    validatePersonalInfo,
+    validateAddress,
+    validateVerification,
+    validateAgreement,
+  } = useMembershipStore();
 
-  const steps = [
-    { title: "Personal Information", description: "Basic details" },
-    { title: "Address", description: "Where you live" },
-    { title: "Verification", description: "ID verification" },
-    { title: "Agreement", description: "Terms & signature" },
-  ];
+  // Set referrer ID if provided
+  if (referrerId && !formData.referrerId) {
+    updateField("referrerId", referrerId);
+  }
 
-  const form = useForm<MembershipFormValues>({
-    resolver: zodResolver(membershipFormSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phoneNumber: "",
-      address: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      membershipType: "standard",
-      idFront: "",
-      idBack: "",
-      termsAgreed: false,
-      signature: "",
-      referrerId: referrerId || "",
-    },
-  });
-
-  const nextStep = () => {
-    const fieldsToValidate = [
-      // Step 1 fields
-      currentStep === 0
-        ? ["firstName", "lastName", "dateOfBirth", "phoneNumber"]
-        : [],
-      // Step 2 fields
-      currentStep === 1
-        ? ["address", "city", "state", "zipCode", "membershipType"]
-        : [],
-      // Step 3 fields
-      currentStep === 2 ? ["idFront", "idBack"] : [],
-      // Step 4 fields
-      currentStep === 3 ? ["termsAgreed", "signature"] : [],
-    ].flat();
-
-    form.trigger(fieldsToValidate as any).then((isValid) => {
-      if (isValid) {
-        setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
-      }
-    });
-  };
-
-  const prevStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 0));
-  };
-
-  async function onSubmit(data: MembershipFormValues) {
-    setIsSubmitting(true);
-
+  const handleComplete = async () => {
     try {
-      // Send data to the API endpoint
+      // Final validation
+      const validatedData = membershipFormSchema.parse(formData);
+
+      setSubmitting(true);
+
       const response = await fetch("/api/members", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(validatedData),
       });
 
       const responseData = await response.json();
@@ -2511,10 +3021,10 @@ export default function MembershipForm({
       }
 
       toast.success(
-        `${data.firstName} ${data.lastName} has been registered successfully`,
+        `${validatedData.firstName} ${validatedData.lastName} has been registered successfully`,
       );
 
-      // Redirect to success page
+      resetForm();
       router.push("/dashboard/members/registration-success");
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -2522,388 +3032,349 @@ export default function MembershipForm({
         error instanceof Error ? error.message : "An unexpected error occurred",
       );
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
-  }
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    if (onOpenChange) onOpenChange(false);
+  };
+
+  const wizardSteps = [
+    {
+      id: "personal",
+      title: "Personal Information",
+      description: "Basic details about you",
+      icon: <User className="w-4 h-4" />,
+      content: <PersonalInfoStep />,
+      isValid: () => validatePersonalInfo().isValid,
+      getValidationErrors: () => validatePersonalInfo().errors,
+    },
+    {
+      id: "address",
+      title: "Address & Membership",
+      description: "Where you live and membership type",
+      icon: <MapPin className="w-4 h-4" />,
+      content: <AddressStep />,
+      isValid: () => validateAddress().isValid,
+      getValidationErrors: () => validateAddress().errors,
+    },
+    {
+      id: "verification",
+      title: "ID Verification",
+      description: "Upload your government ID",
+      icon: <Shield className="w-4 h-4" />,
+      content: <VerificationStep />,
+      isValid: () => validateVerification().isValid,
+      getValidationErrors: () => validateVerification().errors,
+    },
+    {
+      id: "agreement",
+      title: "Agreement & Signature",
+      description: "Terms and digital signature",
+      icon: <FileText className="w-4 h-4" />,
+      content: <AgreementStep />,
+      isValid: () => validateAgreement().isValid,
+      getValidationErrors: () => validateAgreement().errors,
+    },
+  ];
 
   return (
-    <Card className="border-2">
-      <CardContent className="pt-6">
-        <Steps
-          steps={steps}
-          currentStep={currentStep}
-          onStepClick={(step) => {
-            // Only allow going back to previous steps
-            if (step < currentStep) {
-              setCurrentStep(step);
-            }
-          }}
+    <WizardForm
+      steps={wizardSteps}
+      onComplete={handleComplete}
+      onCancel={handleCancel}
+      mode="create"
+      trigger={trigger}
+      open={open}
+      onOpenChange={onOpenChange}
+    />
+  );
+}
+
+// File: components/members/wizard-form/address-step.tsx
+"use client";
+
+import { useMembershipStore } from "@/store/membership-store";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+export function AddressStep() {
+  const { formData, updateField } = useMembershipStore();
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="address">Street Address</Label>
+        <Input
+          id="address"
+          placeholder="123 Main St"
+          value={formData.address || ""}
+          onChange={(e) => updateField("address", e.target.value)}
         />
+      </div>
 
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-6 pt-6"
-          >
-            {currentStep === 0 && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="John" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="space-y-2">
+          <Label htmlFor="city">City</Label>
+          <Input
+            id="city"
+            placeholder="Anytown"
+            value={formData.city || ""}
+            onChange={(e) => updateField("city", e.target.value)}
+          />
+        </div>
 
-                <FormField
-                  control={form.control}
-                  name="dateOfBirth"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Date of Birth</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground",
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => {
-                              // Disable future dates and dates less than 21 years ago
-                              const today = new Date();
-                              const twentyOneYearsAgo = new Date();
-                              twentyOneYearsAgo.setFullYear(
-                                today.getFullYear() - 21,
-                              );
-                              return date > today || date > twentyOneYearsAgo;
-                            }}
-                            initialFocus
-                            captionLayout="dropdown-buttons"
-                            fromYear={1940}
-                            toYear={new Date().getFullYear() - 21}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormDescription>
-                        You must be at least 21 years old to register.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+        <div className="space-y-2">
+          <Label htmlFor="state">State</Label>
+          <Input
+            id="state"
+            placeholder="KZN"
+            value={formData.state || ""}
+            onChange={(e) => updateField("state", e.target.value)}
+          />
+        </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Address (Optional)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="john.doe@example.com"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          For order notifications and updates
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phoneNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="(555) 123-4567" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-            )}
+        <div className="space-y-2">
+          <Label htmlFor="zipCode">ZIP code</Label>
+          <Input
+            id="zipCode"
+            placeholder="1234"
+            value={formData.zipCode || ""}
+            onChange={(e) => updateField("zipCode", e.target.value)}
+          />
+        </div>
+      </div>
 
-            {currentStep === 1 && (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Street Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="123 Main St" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+      <div className="space-y-2">
+        <Label className="space-y-2">Membership Type</Label>
+        <Select
+          value={formData.membershipType || "standard"}
+          onValueChange={(value) => updateField("membershipType", value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a membership type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="standard">Standard</SelectItem>
+            <SelectItem value="premium">Premium</SelectItem>
+            <SelectItem value="vip">VIP</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-sm text-muted-foreground">
+          Different membership types offer different benefits and discounts
+        </p>
+      </div>
+    </div>
+  );
+}
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Anytown" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State</FormLabel>
-                        <FormControl>
-                          <Input placeholder="CA" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="zipCode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ZIP Code</FormLabel>
-                        <FormControl>
-                          <Input placeholder="12345" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+// File: components/members/wizard-form/agreement-step.tsx
+"use client";
 
-                <FormField
-                  control={form.control}
-                  name="membershipType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Membership Type</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a membership type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="premium">Premium</SelectItem>
-                          <SelectItem value="vip">VIP</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Different membership types offer different benefits and
-                        discounts.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
+import { format } from "date-fns";
+import { Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { UserAgreement } from "@/components/user-agreement";
+import { useMembershipStore } from "@/store/membership-store";
+import { SignaturePad } from "@/components/signature-pad";
 
-            {currentStep === 2 && (
-              <div className="space-y-6">
-                <div className="rounded-lg border p-4">
-                  <h3 className="mb-2 text-lg font-medium">ID Verification</h3>
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    Please upload clear images of the front and back of your
-                    government-issued ID. Acceptable formats include driver's
-                    license, passport, or state ID.
-                  </p>
+export function AgreementStep() {
+  const { formData, updateField, isSubmitting } = useMembershipStore();
 
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="idFront"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Front of ID</FormLabel>
-                          <FormControl>
-                            <FileUploader
-                              value={field.value}
-                              onChange={field.onChange}
-                              accept="image/*"
-                              maxSize={5}
-                              label="Upload front of ID"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg border p-4">
+        <h3 className="mb-2 text-lg font-medium">Membership Agreement</h3>
+        <UserAgreement />
 
-                    <FormField
-                      control={form.control}
-                      name="idBack"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Back of ID</FormLabel>
-                          <FormControl>
-                            <FileUploader
-                              value={field.value}
-                              onChange={field.onChange}
-                              accept="image/*"
-                              maxSize={5}
-                              label="Upload back of ID"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+        <div className="mt-4 flex items-start space-x-3">
+          <Checkbox
+            id="termsAgreed"
+            checked={formData.termsAgreed || false}
+            onCheckedChange={(checked) => updateField("termsAgreed", !!checked)}
+          />
+          <Label htmlFor="termsAgreed" className="text-sm leading-none">
+            I have read and agree to the membership terms and conditions
+          </Label>
+        </div>
+      </div>
 
-            {currentStep === 3 && (
-              <div className="space-y-6">
-                <div className="rounded-lg border p-4">
-                  <h3 className="mb-2 text-lg font-medium">
-                    Membership Agreement
-                  </h3>
+      <div className="space-y-2">
+        <Label>Signature</Label>
+        <SignaturePad
+          value={formData.signature || ""}
+          onChange={(value) => updateField("signature", value)}
+        />
+        <p className="text-sm text-muted-foreground">
+          Please sign using your finger or mouse
+        </p>
+      </div>
 
-                  {/* Using the UserAgreement component here */}
-                  <UserAgreement />
+      <div className="rounded-lg border bg-muted/50 p-4">
+        <p className="text-sm text-muted-foreground">
+          Registration Date: {format(new Date(), "PPP")}
+        </p>
+      </div>
 
-                  <FormField
-                    control={form.control}
-                    name="termsAgreed"
-                    render={({ field }) => (
-                      <FormItem className="mt-4 flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>
-                            I have read and agree to the membership terms and
-                            conditions
-                          </FormLabel>
-                          <FormMessage />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                </div>
+      {isSubmitting && (
+        <div className="flex items-center justify-center p-4">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <span>Submitting registration...</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
-                <FormField
-                  control={form.control}
-                  name="signature"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Signature</FormLabel>
-                      <FormControl>
-                        <SignaturePad
-                          value={field.value}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Please sign using your finger or mouse
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+// File: components/members/wizard-form/personal-info-step.tsx
+"use client";
 
-                <div className="rounded-lg border bg-muted/50 p-4">
-                  <p className="text-sm text-muted-foreground">
-                    Registration Date: {format(new Date(), "PPP")}
-                  </p>
-                </div>
-              </div>
-            )}
+import { format } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useMembershipStore } from "@/store/membership-store";
 
-            <div className="flex justify-between pt-4">
-              {currentStep > 0 ? (
-                <Button type="button" variant="outline" onClick={prevStep}>
-                  Previous
-                </Button>
-              ) : (
-                <div></div>
-              )}
+export function PersonalInfoStep() {
+  const { formData, updateField } = useMembershipStore();
 
-              {currentStep < steps.length - 1 ? (
-                <Button type="button" onClick={nextStep}>
-                  Next
-                </Button>
-              ) : (
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    "Complete Registration"
-                  )}
-                </Button>
-              )}
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+  // Calculate max date (21 years ago)
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() - 21);
+  const maxDateString = format(maxDate, "yyyy-MM-dd");
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const dateValue = e.target.value;
+    if (dateValue) {
+      const date = new Date(dateValue + "T00:00:00"); // Prevent timezone issues
+      updateField("dateOfBirth", date);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="firstName">First Name</Label>
+          <Input
+            id="firstName"
+            placeholder="John"
+            value={formData.firstName || ""}
+            onChange={(e) => updateField("firstName", e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lastName">Last Name</Label>
+          <Input
+            id="lastName"
+            placeholder="Doe"
+            value={formData.lastName || ""}
+            onChange={(e) => updateField("lastName", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="dateOfBirth">Date of Birth</Label>
+        <Input
+          id="dateOfBirth"
+          type="date"
+          value={
+            formData.dateOfBirth
+              ? format(formData.dateOfBirth, "yyyy-MM-dd")
+              : ""
+          }
+          onChange={handleDateChange}
+          max={maxDateString}
+          className="w-full"
+        />
+        <p className="text-sm text-muted-foreground">
+          You must be at least 21 years old to register.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email Address (Optional)</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="john.doe@example.com"
+            value={formData.email || ""}
+            onChange={(e) => updateField("email", e.target.value)}
+          />
+          <p className="text-sm text-muted-foreground">
+            For order notifications and updates
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="phoneNumber">Phone Number</Label>
+          <Input
+            id="phoneNumber"
+            placeholder="(555) 123-4567"
+            value={formData.phoneNumber || ""}
+            onChange={(e) => updateField("phoneNumber", e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// File: components/members/wizard-form/verification-step.tsx
+"use client";
+
+import { useMembershipStore } from "@/store/membership-store";
+import { Label } from "@/components/ui/label";
+import { FileUploader } from "@/components/file-uploader";
+
+export function VerificationStep() {
+  const { formData, updateField } = useMembershipStore();
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg border p-4">
+        <h3 className="mb-2 text-lg font-medium">ID Verification</h3>
+        <p>
+          Please upload clear images of the front and back of your
+          government-issued ID. Acceptable formats include driver&#39;s license,
+          passport, or state ID
+        </p>
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Front of ID</Label>
+            <FileUploader
+              value={formData.idFront || ""}
+              onChange={(value) => updateField("idFront", value)}
+              accept="image/*"
+              maxSize={5}
+              label="Upload front of ID"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Back of ID</Label>
+            <FileUploader
+              value={formData.idBack || ""}
+              onChange={(value) => updateField("idBack", value)}
+              accept="image/*"
+              maxSize={5}
+              label="Upload back of ID"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -4486,6 +4957,143 @@ function Checkbox({
 }
 
 export { Checkbox }
+
+// File: components/ui/dialog.tsx
+"use client"
+
+import * as React from "react"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+import { XIcon } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+function Dialog({
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Root>) {
+  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+}
+
+function DialogTrigger({
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
+  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+}
+
+function DialogPortal({
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Portal>) {
+  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
+}
+
+function DialogClose({
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Close>) {
+  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
+}
+
+function DialogOverlay({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+  return (
+    <DialogPrimitive.Overlay
+      data-slot="dialog-overlay"
+      className={cn(
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DialogContent({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+  return (
+    <DialogPortal data-slot="dialog-portal">
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        data-slot="dialog-content"
+        className={cn(
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
+          <XIcon />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  )
+}
+
+function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="dialog-header"
+      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      {...props}
+    />
+  )
+}
+
+function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="dialog-footer"
+      className={cn(
+        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DialogTitle({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Title>) {
+  return (
+    <DialogPrimitive.Title
+      data-slot="dialog-title"
+      className={cn("text-lg leading-none font-semibold", className)}
+      {...props}
+    />
+  )
+}
+
+function DialogDescription({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Description>) {
+  return (
+    <DialogPrimitive.Description
+      data-slot="dialog-description"
+      className={cn("text-muted-foreground text-sm", className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+}
 
 // File: components/ui/drawer.tsx
 "use client"
@@ -6405,6 +7013,39 @@ const Toaster = ({ ...props }: ToasterProps) => {
 
 export { Toaster }
 
+// File: components/ui/switch.tsx
+"use client"
+
+import * as React from "react"
+import * as SwitchPrimitive from "@radix-ui/react-switch"
+
+import { cn } from "@/lib/utils"
+
+function Switch({
+  className,
+  ...props
+}: React.ComponentProps<typeof SwitchPrimitive.Root>) {
+  return (
+    <SwitchPrimitive.Root
+      data-slot="switch"
+      className={cn(
+        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+      {...props}
+    >
+      <SwitchPrimitive.Thumb
+        data-slot="switch-thumb"
+        className={cn(
+          "bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0"
+        )}
+      />
+    </SwitchPrimitive.Root>
+  )
+}
+
+export { Switch }
+
 // File: components/ui/table.tsx
 "use client"
 
@@ -6920,6 +7561,320 @@ export function UserAgreement({ className }: UserAgreementProps) {
       </p>
     </div>
   );
+}
+
+// File: components/wizard-form.tsx
+"use client";
+
+import { useState, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+  Info,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+interface WizardStep {
+  id: string;
+  title: string;
+  description?: string;
+  icon: ReactNode;
+  content: ReactNode;
+  isValid?: boolean | (() => boolean);
+  getValidationErrors?: () => string[];
+}
+
+interface WizardFormProps {
+  steps: WizardStep[];
+  onComplete?: (data?: any) => void;
+  onCancel?: () => void;
+  mode?: "create" | "edit";
+  initialStep?: number;
+  className?: string;
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function WizardForm({
+  steps,
+  onComplete,
+  onCancel,
+  mode = "create",
+  initialStep = 0,
+  className,
+  trigger,
+  open,
+  onOpenChange,
+}: WizardFormProps) {
+  const [currentStep, setCurrentStep] = useState(initialStep);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Use external open state if provided, otherwise use internal state
+  const dialogOpen = open !== undefined ? open : isOpen;
+  const setDialogOpen = onOpenChange || setIsOpen;
+
+  const handleNext = () => {
+    if (currentStep < steps.length - 1) {
+      setCompletedSteps((prev) => new Set([...prev, currentStep]));
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleStepClick = (stepIndex: number) => {
+    // Allow navigation to previous steps or next step if current is completed
+    if (stepIndex <= currentStep || completedSteps.has(stepIndex - 1)) {
+      setCurrentStep(stepIndex);
+    }
+  };
+
+  const handleComplete = () => {
+    setCompletedSteps((prev) => new Set([...prev, currentStep]));
+    onComplete?.();
+    setDialogOpen(false);
+    // Reset wizard state when closing
+    setCurrentStep(initialStep);
+    setCompletedSteps(new Set());
+  };
+
+  const handleCancel = () => {
+    onCancel?.();
+    setDialogOpen(false);
+    // Reset wizard state when closing
+    setCurrentStep(initialStep);
+    setCompletedSteps(new Set());
+  };
+
+  const isStepCompleted = (stepIndex: number) => completedSteps.has(stepIndex);
+  const isStepCurrent = (stepIndex: number) => stepIndex === currentStep;
+  const isStepAccessible = (stepIndex: number) =>
+    stepIndex <= currentStep || completedSteps.has(stepIndex - 1);
+
+  const currentStepData = steps[currentStep];
+  const isLastStep = currentStep === steps.length - 1;
+
+  // Handle validation - support both boolean and function
+  const getStepValidity = (step: WizardStep) => {
+    if (typeof step.isValid === "function") {
+      return step.isValid();
+    }
+    return step.isValid !== false;
+  };
+
+  const canProceed = getStepValidity(currentStepData);
+
+  // Get validation errors for current step
+  const getValidationErrors = () => {
+    if (currentStepData.getValidationErrors) {
+      return currentStepData.getValidationErrors();
+    }
+    return [];
+  };
+
+  const validationErrors = getValidationErrors();
+  const hasValidationErrors = validationErrors.length > 0;
+
+  const wizardContent = (
+    <div className={cn("flex h-full w-full min-h-[600px]", className)}>
+      {/* Left Sidebar - Steps */}
+      <div className="w-80 bg-gray-50 border-r border-gray-200 p-6 flex-shrink-0">
+        <div className="space-y-1">
+          {steps.map((step, index) => {
+            const completed = isStepCompleted(index);
+            const current = isStepCurrent(index);
+            const accessible = isStepAccessible(index);
+
+            return (
+              <div
+                key={step.id}
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200",
+                  {
+                    "bg-green-100 text-green-800": completed,
+                    "bg-blue-100 text-blue-800": current && !completed,
+                    "text-gray-600 hover:bg-gray-100":
+                      !current && !completed && accessible,
+                    "text-gray-400 cursor-not-allowed": !accessible,
+                  },
+                )}
+                onClick={() => accessible && handleStepClick(index)}
+              >
+                <div
+                  className={cn(
+                    "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium",
+                    {
+                      "bg-green-500 text-white": completed,
+                      "bg-blue-500 text-white": current && !completed,
+                      "bg-gray-200 text-gray-600":
+                        !current && !completed && accessible,
+                      "bg-gray-100 text-gray-400": !accessible,
+                    },
+                  )}
+                >
+                  {completed ? <Check className="w-4 h-4" /> : step.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">{step.title}</div>
+                  {step.description && (
+                    <div className="text-xs opacity-75 mt-1">
+                      {step.description}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Right Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="border-b border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">
+                {currentStepData?.title}
+              </h1>
+              {currentStepData?.description && (
+                <p className="text-gray-600 mt-1 text-sm">
+                  {currentStepData.description}
+                </p>
+              )}
+            </div>
+            <div className="text-sm text-gray-500">
+              Step {currentStep + 1} of {steps.length}
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 p-6 overflow-y-auto">
+          <div className="space-y-4">
+            {/* Validation Feedback */}
+            {!canProceed && hasValidationErrors && (
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertDescription>
+                  <div className="text-amber-800">
+                    <p className="font-medium mb-2">
+                      Please complete the following:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      {validationErrors.map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Success feedback when step is valid */}
+            {canProceed && !isStepCompleted(currentStep) && (
+              <Alert className="border-green-200 bg-green-50">
+                <Check className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">
+                  Great! This step is complete. You can proceed to the next
+                  step.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <Card>
+              <CardContent className="p-6">
+                {currentStepData?.content}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleCancel}>
+                Cancel
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-4">
+              {/* Validation status indicator */}
+              {!canProceed && (
+                <div className="flex items-center gap-2 text-sm text-amber-600">
+                  <Info className="w-4 h-4" />
+                  <span>Complete required fields to continue</span>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={currentStep === 0}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+
+                {isLastStep ? (
+                  <Button
+                    onClick={handleComplete}
+                    disabled={!canProceed}
+                    className="flex items-center gap-2"
+                  >
+                    {mode === "edit" ? "Save Changes" : "Complete"}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleNext}
+                    disabled={!canProceed}
+                    className="flex items-center gap-2"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (trigger) {
+    return (
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogTitle></DialogTitle>
+        <DialogTrigger asChild>{trigger}</DialogTrigger>
+        <DialogContent className="max-w-6xl min-w-[90vw] h-[80vh] p-0">
+          {wizardContent}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return wizardContent;
 }
 
 // File: app/api/auth/[...nextauth]/route.ts
@@ -7944,9 +8899,35 @@ export default function DashboardLayout({
   );
 }
 
+// File: app/dashboard/members/[id]/page.tsx
+import { getMemberById } from "@/util/actions/member";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import { MemberDetailView } from "@/components/members/member-detail-view";
+
+export default async function MemberPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const member = await getMemberById(id);
+
+  if (!member) {
+    notFound();
+  }
+
+  return (
+    <div className="container mx-auto py-6">
+      <Suspense fallback={<div>Loading...</div>}>
+        <MemberDetailView member={member} />
+      </Suspense>
+    </div>
+  );
+}
+
 // File: app/dashboard/members/create/page.tsx
 import type { Metadata } from "next";
-import MembershipForm from "@/components/members/membership-form";
 
 export const metadata: Metadata = {
   title: "New Member Registration",
@@ -7964,7 +8945,6 @@ export default function NewMemberPage() {
           Please complete the form below to register as a new member.
         </p>
       </div>
-      <MembershipForm />
     </div>
   );
 }
@@ -7972,10 +8952,11 @@ export default function NewMemberPage() {
 // File: app/dashboard/members/page.tsx
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusCircle } from "lucide-react";
+import {Plus, PlusCircle} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { MembersTable } from "@/components/members/members-table";
+import MembershipForm from "@/components/members/membership-form";
 
 export const metadata: Metadata = {
   title: "Members | Cotton Mouth",
@@ -7992,15 +8973,19 @@ export default function MembersPage() {
             Manage and view all club members
           </p>
         </div>
-        <Button asChild>
-          <Link
-            href="/dashboard/members/create"
-            className="flex items-center gap-1"
-          >
-            <PlusCircle className="mr-1 h-4 w-4" />
-            New Member
-          </Link>
-        </Button>
+        {/*<Button asChild>*/}
+        {/*  <Link*/}
+        {/*    href="/dashboard/members/create"*/}
+        {/*    className="flex items-center gap-1"*/}
+        {/*  >*/}
+        {/*    <PlusCircle className="mr-1 h-4 w-4" />*/}
+        {/*    New Member*/}
+        {/*  </Link>*/}
+        {/*</Button>*/}
+        <MembershipForm trigger={ <Button className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Create New Member
+        </Button>}/>
       </div>
 
       <MembersTable />
@@ -8313,113 +9298,25 @@ export default function LoginPage() {
 }
 
 // File: app/page.tsx
-"use client";
-import Image from "next/image";
-import { useEffect } from "react";
+"use client"
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { PacmanLoader } from "react-spinners";
 
 export default function Home() {
-  const router = useRouter();
-  useEffect(() => {
-    router.push("/dashboard");
-  }, []);
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const router = useRouter()
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  useEffect(() => {
+    router.push('/dashboard')
+  }, [])
+
+  return (
+    <div className="w-full h-screen flex justify-center items-center">
+      <div className="flex flex-col">
+        <PacmanLoader color="#59e4a8"  size={100}/>
+        <h1 className="text-3xl mt-10">Starting up...</h1>
+      </div>
+
     </div>
   );
 }
@@ -8675,9 +9572,6 @@ ALTER TABLE "Shift" ADD CONSTRAINT "Shift_businessDayId_fkey" FOREIGN KEY ("busi
 provider = "postgresql"
 
 // File: prisma/schema.prisma
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8687,102 +9581,85 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Define your models based on the Doob System
 model User {
   id        String   @id @default(uuid())
   name      String
   email     String   @unique
   password  String
-  role      String   @default("staff") // staff, admin, etc.
+  role      String   @default("staff")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // Relationships
-  members Member[] @relation("CreatedBy")
+  members   Member[] @relation("CreatedBy")
 }
 
 model Member {
-  id             String   @id @default(uuid())
-  firstName      String
-  lastName       String
-  email          String?  @unique
-  phoneNumber    String?
-  membershipType String
-  balance        Float    @default(0)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Identification details
-  idFront String? // File path or reference
-  idBack  String? // File path or reference
-
-  // App integration
-  appLinked Boolean @default(false)
-  username  String? @unique
-
-  // Relationships
-  createdBy       User       @relation("CreatedBy", fields: [createdById], references: [id])
+  id              String     @id @default(uuid())
+  firstName       String
+  lastName        String
+  email           String?    @unique
+  phoneNumber     String?
+  membershipType  String
+  balance         Float      @default(0)
+  isActive        Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  idFront         String?
+  idBack          String?
+  appLinked       Boolean    @default(false)
+  username        String?    @unique
   createdById     String
-  orders          Order[]
-  donations       Donation[]
-  referredMembers Member[]   @relation("Referrals")
-  referredBy      Member?    @relation("Referrals", fields: [referredById], references: [id])
   referredById    String?
+  donations       Donation[]
+  createdBy       User       @relation("CreatedBy", fields: [createdById], references: [id])
+  referredBy      Member?    @relation("Referrals", fields: [referredById], references: [id])
+  referredMembers Member[]   @relation("Referrals")
+  orders          Order[]
 }
 
 model Product {
-  id              String   @id @default(uuid())
+  id              String      @id @default(uuid())
   name            String
-  category        String // flower, edible, etc.
+  category        String
   description     String?
   price           Float
-  unit            String // gram, unit, etc.
-  stock           Float    @default(0)
-  jarWeight       Float? // For weigh-up
-  displayOnApp    Boolean  @default(true)
-  allowGifting    Boolean  @default(false)
-  ignoreDiscounts Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relationships
-  orderItems OrderItem[]
+  unit            String
+  stock           Float       @default(0)
+  jarWeight       Float?
+  displayOnApp    Boolean     @default(true)
+  allowGifting    Boolean     @default(false)
+  ignoreDiscounts Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  orderItems      OrderItem[]
 }
 
 model Order {
-  id        String   @id @default(uuid())
+  id        String      @id @default(uuid())
   total     Float
-  status    String   @default("completed") // completed, refunded, etc.
-  createdAt DateTime @default(now())
-
-  // Relationships
-  member   Member      @relation(fields: [memberId], references: [id])
-  memberId String
-  items    OrderItem[]
+  status    String      @default("completed")
+  createdAt DateTime    @default(now())
+  memberId  String
+  member    Member      @relation(fields: [memberId], references: [id])
+  items     OrderItem[]
 }
 
 model OrderItem {
-  id       String @id @default(uuid())
-  quantity Float
-  price    Float
-
-  // Relationships
-  order     Order   @relation(fields: [orderId], references: [id])
+  id        String  @id @default(uuid())
+  quantity  Float
+  price     Float
   orderId   String
-  product   Product @relation(fields: [productId], references: [id])
   productId String
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 }
 
 model Donation {
   id        String   @id @default(uuid())
   amount    Float
-  method    String // cash, card, club
+  method    String
   createdAt DateTime @default(now())
-
-  // Relationships
-  member   Member? @relation(fields: [memberId], references: [id])
-  memberId String?
+  memberId  String?
+  member    Member?  @relation(fields: [memberId], references: [id])
 }
 
 model Workstation {
@@ -8802,14 +9679,12 @@ model BusinessDay {
 }
 
 model Shift {
-  id        String    @id @default(uuid())
-  startedAt DateTime  @default(now())
-  endedAt   DateTime?
-  cashOut   Float?
-
-  // Relationships
-  businessDay   BusinessDay @relation(fields: [businessDayId], references: [id])
+  id            String      @id @default(uuid())
+  startedAt     DateTime    @default(now())
+  endedAt       DateTime?
+  cashOut       Float?
   businessDayId String
+  businessDay   BusinessDay @relation(fields: [businessDayId], references: [id])
 }
 
 // File: prisma/seed.ts
@@ -8821,13 +9696,14 @@ const prisma = new PrismaClient();
 async function main() {
   // Create admin user
   const hashedPassword = await hash("Admin123!", 10);
+  console.log("hashedPassword", hashedPassword)
 
   const admin = await prisma.user.upsert({
-    where: { email: "ricardo@doobsystem.com" },
+    where: { email: "jaradtryffin23@gmail.com" },
     update: {},
     create: {
-      name: "Admin User",
-      email: "admin@doobsystem.com",
+      name: "Jarad",
+      email: "jaradtryffin23@gmail.com",
       password: hashedPassword,
       role: "admin",
     },
