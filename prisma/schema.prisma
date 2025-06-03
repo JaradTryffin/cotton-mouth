@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,102 +7,85 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Define your models based on the Doob System
 model User {
   id        String   @id @default(uuid())
   name      String
   email     String   @unique
   password  String
-  role      String   @default("staff") // staff, admin, etc.
+  role      String   @default("staff")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // Relationships
-  members Member[] @relation("CreatedBy")
+  members   Member[] @relation("CreatedBy")
 }
 
 model Member {
-  id             String   @id @default(uuid())
-  firstName      String
-  lastName       String
-  email          String?  @unique
-  phoneNumber    String?
-  membershipType String
-  balance        Float    @default(0)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Identification details
-  idFront String? // File path or reference
-  idBack  String? // File path or reference
-
-  // App integration
-  appLinked Boolean @default(false)
-  username  String? @unique
-
-  // Relationships
-  createdBy       User       @relation("CreatedBy", fields: [createdById], references: [id])
+  id              String     @id @default(uuid())
+  firstName       String
+  lastName        String
+  email           String?    @unique
+  phoneNumber     String?
+  membershipType  String
+  balance         Float      @default(0)
+  isActive        Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  idFront         String?
+  idBack          String?
+  appLinked       Boolean    @default(false)
+  username        String?    @unique
   createdById     String
-  orders          Order[]
-  donations       Donation[]
-  referredMembers Member[]   @relation("Referrals")
-  referredBy      Member?    @relation("Referrals", fields: [referredById], references: [id])
   referredById    String?
+  donations       Donation[]
+  createdBy       User       @relation("CreatedBy", fields: [createdById], references: [id])
+  referredBy      Member?    @relation("Referrals", fields: [referredById], references: [id])
+  referredMembers Member[]   @relation("Referrals")
+  orders          Order[]
 }
 
 model Product {
-  id              String   @id @default(uuid())
+  id              String      @id @default(uuid())
   name            String
-  category        String // flower, edible, etc.
+  category        String
   description     String?
   price           Float
-  unit            String // gram, unit, etc.
-  stock           Float    @default(0)
-  jarWeight       Float? // For weigh-up
-  displayOnApp    Boolean  @default(true)
-  allowGifting    Boolean  @default(false)
-  ignoreDiscounts Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relationships
-  orderItems OrderItem[]
+  unit            String
+  stock           Float       @default(0)
+  jarWeight       Float?
+  displayOnApp    Boolean     @default(true)
+  allowGifting    Boolean     @default(false)
+  ignoreDiscounts Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  orderItems      OrderItem[]
 }
 
 model Order {
-  id        String   @id @default(uuid())
+  id        String      @id @default(uuid())
   total     Float
-  status    String   @default("completed") // completed, refunded, etc.
-  createdAt DateTime @default(now())
-
-  // Relationships
-  member   Member      @relation(fields: [memberId], references: [id])
-  memberId String
-  items    OrderItem[]
+  status    String      @default("completed")
+  createdAt DateTime    @default(now())
+  memberId  String
+  member    Member      @relation(fields: [memberId], references: [id])
+  items     OrderItem[]
 }
 
 model OrderItem {
-  id       String @id @default(uuid())
-  quantity Float
-  price    Float
-
-  // Relationships
-  order     Order   @relation(fields: [orderId], references: [id])
+  id        String  @id @default(uuid())
+  quantity  Float
+  price     Float
   orderId   String
-  product   Product @relation(fields: [productId], references: [id])
   productId String
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 }
 
 model Donation {
   id        String   @id @default(uuid())
   amount    Float
-  method    String // cash, card, club
+  method    String
   createdAt DateTime @default(now())
-
-  // Relationships
-  member   Member? @relation(fields: [memberId], references: [id])
-  memberId String?
+  memberId  String?
+  member    Member?  @relation(fields: [memberId], references: [id])
 }
 
 model Workstation {
@@ -125,12 +105,10 @@ model BusinessDay {
 }
 
 model Shift {
-  id        String    @id @default(uuid())
-  startedAt DateTime  @default(now())
-  endedAt   DateTime?
-  cashOut   Float?
-
-  // Relationships
-  businessDay   BusinessDay @relation(fields: [businessDayId], references: [id])
+  id            String      @id @default(uuid())
+  startedAt     DateTime    @default(now())
+  endedAt       DateTime?
+  cashOut       Float?
   businessDayId String
+  businessDay   BusinessDay @relation(fields: [businessDayId], references: [id])
 }

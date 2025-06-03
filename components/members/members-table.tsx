@@ -55,6 +55,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 // Type definitions
 interface Member {
@@ -96,6 +97,7 @@ type SortField =
   | null;
 
 export function MembersTable() {
+  const router = useRouter();
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -592,7 +594,11 @@ export function MembersTable() {
                   </TableRow>
                 ) : sortedMembers.length > 0 ? (
                   sortedMembers.map((member) => (
-                    <TableRow key={member.id}>
+                    <TableRow
+                      className="cursor-pointer"
+                      key={member.id}
+                      onClick={() => router.push(`/dashboard/members/${member.id}`)}
+                    >
                       <TableCell>
                         <Checkbox
                           checked={selectedMembers.includes(member.id)}
