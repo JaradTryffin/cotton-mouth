@@ -6,13 +6,14 @@ const prisma = new PrismaClient();
 async function main() {
   // Create admin user
   const hashedPassword = await hash("Admin123!", 10);
+  console.log("hashedPassword", hashedPassword)
 
   const admin = await prisma.user.upsert({
-    where: { email: "ricardo@doobsystem.com" },
+    where: { email: "jaradtryffin23@gmail.com" },
     update: {},
     create: {
-      name: "Admin User",
-      email: "admin@doobsystem.com",
+      name: "Jarad",
+      email: "jaradtryffin23@gmail.com",
       password: hashedPassword,
       role: "admin",
     },
