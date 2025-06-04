@@ -15,7 +15,9 @@ model User {
   role      String   @default("staff")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  members   Member[] @relation("CreatedBy")
+
+  members            Member[]            @relation("CreatedBy")
+  inventoryMovements InventoryMovement[] // New relationship
 }
 
 model Member {
@@ -59,31 +61,36 @@ model TokenTransaction {
 }
 
 model Product {
-  id              String      @id @default(uuid())
+  id              String   @id @default(uuid())
   name            String
   category        String
   description     String?
-  tokenPrice      Float // Changed from 'price' to 'tokenPrice'
+  tokenPrice      Float // What members pay in tokens
+  costPrice       Float // What you paid for it in Rands (new)
+  sellingPrice    Float? // Internal Rand value for accounting (new)
   unit            String
-  stock           Float       @default(0)
+  stock           Float    @default(0)
   jarWeight       Float?
-  displayOnApp    Boolean     @default(true)
-  allowGifting    Boolean     @default(false)
-  ignoreDiscounts Boolean     @default(false)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  orderItems      OrderItem[]
+  displayOnApp    Boolean  @default(true)
+  allowGifting    Boolean  @default(false)
+  ignoreDiscounts Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  orderItems         OrderItem[]
+  inventoryMovements InventoryMovement[] // New relationship
 }
 
 model Order {
   id          String   @id @default(uuid())
-  totalTokens Float // Changed from 'total' to 'totalTokens'
+  totalTokens Float
   status      String   @default("completed")
   createdAt   DateTime @default(now())
   memberId    String
 
-  member Member      @relation(fields: [memberId], references: [id])
-  items  OrderItem[]
+  member             Member              @relation(fields: [memberId], references: [id])
+  items              OrderItem[]
+  inventoryMovements InventoryMovement[] // New relationship
 }
 
 model OrderItem {
@@ -131,4 +138,22 @@ model Shift {
   cashOut       Float?
   businessDayId String
   businessDay   BusinessDay @relation(fields: [businessDayId], references: [id])
+}
+
+model InventoryMovement {
+  id          String    @id @default(uuid())
+  productId   String
+  type        String // "PURCHASE", "SALE", "ADJUSTMENT", "WASTE"
+  quantity    Float
+  costPrice   Float? // Cost in Rands when purchasing inventory
+  reason      String? // Optional reason for adjustment
+  batchNumber String? // Optional batch tracking
+  expiryDate  DateTime? // Optional for perishables
+  createdAt   DateTime  @default(now())
+  createdById String
+  orderId     String? // Link to order if it's a sale
+
+  product   Product @relation(fields: [productId], references: [id])
+  createdBy User    @relation(fields: [createdById], references: [id])
+  order     Order?  @relation(fields: [orderId], references: [id])
 }
