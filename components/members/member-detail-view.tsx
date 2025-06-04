@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -115,6 +115,16 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
     username: member.username || "",
   });
 
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
+
   const handleSave = async () => {
     try {
       await updateMember(member.id, editedMember);
@@ -147,7 +157,7 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 m-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center space-x-4">
@@ -558,7 +568,7 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
                           <Badge variant="outline">{donation.method}</Badge>
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          ${donation.amount.toFixed(2)}
+                          R{donation.amount.toFixed(2)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -573,7 +583,7 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
                 <div className="mt-4 pt-4 border-t">
                   <div className="flex justify-between items-center font-medium">
                     <span>Total Donations:</span>
-                    <span>${totalDonations.toFixed(2)}</span>
+                    <span>R{totalDonations.toFixed(2)}</span>
                   </div>
                 </div>
               )}

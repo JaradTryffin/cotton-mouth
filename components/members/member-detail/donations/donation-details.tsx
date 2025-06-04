@@ -25,9 +25,11 @@ export function DonationDetailsStep() {
     <div className="space-y-6">
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="amount">Donation Amount (R)</Label>
+          <Label htmlFor="amount">Donation Amount</Label>
           <div className="relative">
-            R
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+              R
+            </span>
             <Input
               id="amount"
               type="number"
@@ -37,7 +39,7 @@ export function DonationDetailsStep() {
               placeholder="0.00"
               value={formData.amount || ""}
               onChange={handleAmountChange}
-              className="pl-10"
+              className="pl-8"
             />
           </div>
           <p className="text-sm text-muted-foreground">

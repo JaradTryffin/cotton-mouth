@@ -1645,12 +1645,435 @@ export function LoginForm({
   );
 }
 
-// File: components/members/member-detail/donation-form.tsx
-"use client"
+// File: components/members/member-detail/donations/confirmation-step.tsx
+"use client";
+import { useDonationStore } from "@/store/donation-store";
+import { useEffect, useState } from "react";
+import { CreditCard, FileText, Loader2, User } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+
+interface Member {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  membershipType: string;
+  tokenBalance: number;
+}
+
+export function ConfirmationStep() {
+  const { formData, isSubmitting } = useDonationStore();
+  const [member, setMember] = useState<Member | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch member details
+  useEffect(() => {
+    const fetchMember = async () => {
+      if (!formData.memberId) return;
+
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/members/${formData.memberId}`);
+        if (response.ok) {
+          const memberData = await response.json();
+          setMember(memberData);
+        }
+      } catch (error) {
+        console.error("Error fetching member:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMember();
+  }, [formData.memberId]);
+
+  const getPaymentMethodLabel = (method: string) => {
+    switch (method) {
+      case "cash":
+        return "Cash";
+      case "card":
+        return "Card Payment";
+      case "eft":
+        return "EFT/Bank Transfer";
+      case "other":
+        return "Other";
+      default:
+        return method;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span className="ml-2">Loading member details...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h3 className="text-lg font-semibold">Confirm Donation Details</h3>
+        <p className="text-sm text-muted-foreground">
+          Please review the information below before processing the donation
+        </p>
+      </div>
+
+      {/* Member Information */}
+      {member && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <User className="h-5 w-5 text-muted-foreground" />
+              <h4 className="font-medium">Member Information</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Name</p>
+                <p className="font-medium">
+                  {member.firstName} {member.lastName}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="font-medium">{member.email || "Not provided"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Membership Type</p>
+                <Badge variant="outline">{member.membershipType}</Badge>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Current Balance</p>
+                <p className="font-medium">R{member.tokenBalance.toFixed(0)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Donation Details */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3 mb-3">
+            R<h4 className="font-medium">Donation Details</h4>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Amount</span>
+              <span className="font-medium">
+                R{formData.amount?.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Payment Method</span>
+              <span className="font-medium">
+                {getPaymentMethodLabel(formData.method || "")}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Tokens to Issue</span>
+              <span className="font-medium text-green-600">
+                {formData.amount?.toFixed(0)} tokens
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Date</span>
+              <span className="font-medium">{format(new Date(), "PPP")}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Balance After Donation */}
+      {member && formData.amount && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <CreditCard className="h-5 w-5 text-green-600" />
+              <h4 className="font-medium text-green-800">
+                Balance After Donation
+              </h4>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-green-700">New Token Balance</span>
+              <span className="text-lg font-bold text-green-800">
+                R{(member.tokenBalance + formData.amount).toFixed(0)}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Notes */}
+      {formData.notes && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <h4 className="font-medium">Notes</h4>
+            </div>
+            <p className="text-sm text-muted-foreground">{formData.notes}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {isSubmitting && (
+        <div className="flex items-center justify-center p-4">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <span>Processing donation...</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// File: components/members/member-detail/donations/donation-details.tsx
+"use client";
+
+import { useDonationStore } from "@/store/donation-store";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+
+export function DonationDetailsStep() {
+  const { formData, updateField } = useDonationStore();
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value) || 0;
+    updateField("amount", value);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="amount">Donation Amount</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+              R
+            </span>
+            <Input
+              id="amount"
+              type="number"
+              min="0"
+              max="10000"
+              step="0.01"
+              placeholder="0.00"
+              value={formData.amount || ""}
+              onChange={handleAmountChange}
+              className="pl-8"
+            />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Enter the amount in South African Rands (Maximum: R10,000)
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Payment Method</Label>
+          <Select
+            value={formData.method || "cash"}
+            onValueChange={(value) => updateField("method", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select payment method" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cash">Cash</SelectItem>
+              <SelectItem value="card">Card Payment</SelectItem>
+              <SelectItem value="eft">EFT/Bank Transfer</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="notes">Notes (Optional)</Label>
+          <Textarea
+            id="notes"
+            placeholder="Add any additional notes about this donation..."
+            value={formData.notes || ""}
+            onChange={(e) => updateField("notes", e.target.value)}
+            rows={3}
+          />
+        </div>
+      </div>
+
+      {/* Token Conversion Display */}
+      {formData.amount && formData.amount > 0 && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                R
+              </div>
+              <div>
+                <h3 className="font-semibold text-green-800">
+                  Token Conversion
+                </h3>
+                <p className="text-sm text-green-700">
+                  R{formData.amount.toFixed(2)} = {formData.amount.toFixed(0)}{" "}
+                  tokens
+                </p>
+                <p className="text-xs text-green-600">
+                  Exchange rate: R1 = 1 token
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// File: components/members/member-detail/donations/donation-form.tsx
+"use client";
+
+import { useRouter } from "next/navigation";
+import { DollarSign, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
+import { useDonationStore } from "@/store/donation-store";
+
+import { useEffect } from "react";
+import { DonationDetailsStep } from "@/components/members/member-detail/donations/donation-details";
+import { ConfirmationStep } from "@/components/members/member-detail/donations/confirmation-step";
+import { WizardForm } from "@/components/wizard-form";
+
+interface DonationFormProps {
+  memberId: string; // Required since we're in member context
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function DonationForm({
+  memberId,
+  trigger,
+  open,
+  onOpenChange,
+}: DonationFormProps) {
+  const router = useRouter();
+  const {
+    formData,
+    setSubmitting,
+    resetForm,
+    setMemberId,
+    validateDonationDetails,
+    validateConfirmation,
+  } = useDonationStore();
+
+  // Set member ID when component mounts or memberId changes
+  useEffect(() => {
+    if (memberId) {
+      setMemberId(memberId);
+    }
+  }, [memberId, setMemberId]);
+
+  const handleComplete = async () => {
+    try {
+      // Final validation
+      const validation = validateConfirmation();
+      if (!validation.isValid) {
+        toast.error("Please fix the validation errors before proceeding");
+        return;
+      }
+
+      setSubmitting(true);
+
+      const response = await fetch("/api/donations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          memberId: formData.memberId,
+          amount: formData.amount,
+          method: formData.method,
+          notes: formData.notes,
+        }),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.error || "Failed to process donation");
+      }
+
+      toast.success(
+        `Donation of R${formData.amount?.toFixed(2)} processed successfully! ${responseData.tokensIssued} tokens issued.`,
+      );
+
+      resetForm();
+      if (onOpenChange) onOpenChange(false);
+
+      // Refresh the page to update member balance
+      router.refresh();
+    } catch (error) {
+      console.error("Error processing donation:", error);
+      toast.error(
+        error instanceof Error ? error.message : "An unexpected error occurred",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    if (onOpenChange) onOpenChange(false);
+  };
+
+  const wizardSteps = [
+    {
+      id: "details",
+      title: "Donation Details",
+      description: "Enter donation amount and payment method",
+      icon: <DollarSign className="w-4 h-4" />,
+      content: <DonationDetailsStep />,
+      isValid: () => validateDonationDetails().isValid,
+      getValidationErrors: () => validateDonationDetails().errors,
+    },
+    {
+      id: "confirmation",
+      title: "Confirm & Process",
+      description: "Review details and process donation",
+      icon: <CheckCircle className="w-4 h-4" />,
+      content: <ConfirmationStep />,
+      isValid: () => validateConfirmation().isValid,
+      getValidationErrors: () => validateConfirmation().errors,
+    },
+  ];
+
+  return (
+    <WizardForm
+      steps={wizardSteps}
+      onComplete={handleComplete}
+      onCancel={handleCancel}
+      mode="create"
+      trigger={trigger}
+      open={open}
+      onOpenChange={onOpenChange}
+    />
+  );
+}
+
 // File: components/members/member-detail-view.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1693,6 +2116,7 @@ import {
 } from "lucide-react";
 import { updateMember } from "@/util/actions/member";
 import { useRouter } from "next/navigation";
+import DonationForm from "@/components/members/member-detail/donations/donation-form";
 
 interface MemberDetailViewProps {
   member: {
@@ -1764,6 +2188,16 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
     username: member.username || "",
   });
 
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
+
   const handleSave = async () => {
     try {
       await updateMember(member.id, editedMember);
@@ -1796,7 +2230,7 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 m-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center space-x-4">
@@ -2179,6 +2613,15 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <DonationForm
+                memberId={member.id}
+                trigger={
+                  <Button size="sm" variant="outline">
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Add Donation
+                  </Button>
+                }
+              />
               {member.donations.length > 0 ? (
                 <Table>
                   <TableHeader>
@@ -2198,7 +2641,7 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
                           <Badge variant="outline">{donation.method}</Badge>
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          ${donation.amount.toFixed(2)}
+                          R{donation.amount.toFixed(2)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -2213,7 +2656,7 @@ export function MemberDetailView({ member }: MemberDetailViewProps) {
                 <div className="mt-4 pt-4 border-t">
                   <div className="flex justify-between items-center font-medium">
                     <span>Total Donations:</span>
-                    <span>${totalDonations.toFixed(2)}</span>
+                    <span>R{totalDonations.toFixed(2)}</span>
                   </div>
                 </div>
               )}
@@ -7348,6 +7791,26 @@ function TabsContent({
 
 export { Tabs, TabsList, TabsTrigger, TabsContent }
 
+// File: components/ui/textarea.tsx
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
+  return (
+    <textarea
+      data-slot="textarea"
+      className={cn(
+        "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Textarea }
+
 // File: components/ui/toggle-group.tsx
 "use client"
 
@@ -8063,6 +8526,190 @@ export const authOptions: AuthOptions = {
 
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
+
+// File: app/api/donations/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import prisma from "@/lib/prisma";
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { memberId, amount, method, notes } = await request.json();
+
+    // Validation
+    if (!memberId || !amount || amount <= 0) {
+      return NextResponse.json(
+        { error: "Invalid donation data" },
+        { status: 400 },
+      );
+    }
+
+    if (amount > 10000) {
+      return NextResponse.json(
+        { error: "Donation amount cannot exceed R10,000" },
+        { status: 400 },
+      );
+    }
+
+    // Verify member exists and is active
+    const member = await prisma.member.findUnique({
+      where: { id: memberId },
+    });
+
+    if (!member) {
+      return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    }
+
+    if (!member.isActive) {
+      return NextResponse.json(
+        { error: "Cannot process donation for inactive member" },
+        { status: 400 },
+      );
+    }
+
+    // Convert R1 = 1 token (1:1 ratio)
+    const tokensToIssue = amount;
+
+    // Start transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create donation record
+      const donation = await tx.donation.create({
+        data: {
+          amount: amount,
+          tokensIssued: tokensToIssue,
+          method: method,
+          memberId: memberId,
+        },
+      });
+
+      // Update member token balance
+      const updatedMember = await tx.member.update({
+        where: { id: memberId },
+        data: {
+          tokenBalance: {
+            increment: tokensToIssue,
+          },
+        },
+      });
+
+      // Create token transaction record
+      await tx.tokenTransaction.create({
+        data: {
+          memberId: memberId,
+          amount: tokensToIssue,
+          type: "DONATION",
+          description: notes
+            ? `Donation: R${amount} = ${tokensToIssue} tokens. Notes: ${notes}`
+            : `Donation: R${amount} = ${tokensToIssue} tokens`,
+          relatedId: donation.id,
+        },
+      });
+
+      return {
+        donation,
+        newBalance: updatedMember.tokenBalance,
+      };
+    });
+
+    return NextResponse.json({
+      success: true,
+      donation: {
+        id: result.donation.id,
+        amount: result.donation.amount,
+        tokensIssued: result.donation.tokensIssued,
+        method: result.donation.method,
+        createdAt: result.donation.createdAt,
+      },
+      tokensIssued: tokensToIssue,
+      newBalance: result.newBalance,
+      member: {
+        id: member.id,
+        firstName: member.firstName,
+        lastName: member.lastName,
+      },
+    });
+  } catch (error) {
+    console.error("Error processing donation:", error);
+    return NextResponse.json(
+      { error: "Failed to process donation" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get query parameters
+    const url = new URL(request.url);
+    const memberId = url.searchParams.get("memberId");
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: any = {};
+    if (memberId) {
+      where.memberId = memberId;
+    }
+
+    // Get donations with pagination
+    const donations = await prisma.donation.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        member: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Get total count for pagination
+    const totalCount = await prisma.donation.count({ where });
+
+    // Transform the data
+    const transformedDonations = donations.map((donation) => ({
+      ...donation,
+      createdAt: donation.createdAt.toISOString(),
+    }));
+
+    return NextResponse.json({
+      donations: transformedDonations,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching donations:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch donations" },
+      { status: 500 },
+    );
+  }
+}
 
 // File: app/api/members/route.ts
 // app/api/members/route.ts
