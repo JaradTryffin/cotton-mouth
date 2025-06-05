@@ -48,6 +48,11 @@ const data = {
       icon: IconUsers,
     },
     {
+      title: "Products",
+      url: "/dashboard/products",
+      icon: IconFileDescription,
+    },
+    {
       title: "Inventory",
       url: "/dashboard/inventory",
       icon: IconBox,
